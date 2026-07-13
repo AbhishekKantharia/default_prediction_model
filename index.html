@@ -295,22 +295,54 @@ section{padding:100px 0;position:relative}
 /* ═══════ MINI-GAME: SLOT MACHINE ═══════ */
 .slot-section{background:rgba(0,0,0,0.2);border-top:1px solid rgba(0,240,255,0.05);
   border-bottom:1px solid rgba(0,240,255,0.05)}
-.slot-machine{max-width:500px;margin:0 auto;text-align:center}
-.slot-reels{display:flex;justify-content:center;gap:12px;margin:30px 0}
-.slot-reel{width:90px;height:90px;border-radius:14px;
-  background:rgba(0,0,0,0.5);border:2px solid rgba(0,240,255,0.15);
-  display:flex;align-items:center;justify-content:center;font-size:2.5rem;
-  overflow:hidden;position:relative}
-.slot-reel.spinning{animation:reelSpin .1s linear infinite}
-@keyframes reelSpin{0%{transform:translateY(-5px)}50%{transform:translateY(5px)}100%{transform:translateY(-5px)}}
-.slot-reel .symbol{transition:all .3s}
-.spin-btn{padding:14px 40px;background:linear-gradient(135deg,var(--gold),var(--orange));
-  border:none;border-radius:10px;font-family:'Press Start 2P',monospace;font-size:0.65rem;
-  color:#000;cursor:pointer;transition:all .3s}
-.spin-btn:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(255,215,0,0.3)}
-.spin-btn:disabled{opacity:0.5;cursor:not-allowed;transform:none}
-.slot-result{font-family:'Orbitron',monospace;font-size:1rem;margin-top:16px;min-height:30px}
-.slot-cost{font-size:0.8rem;color:rgba(224,224,255,0.3);margin-top:8px}
+.slot-machine{max-width:520px;margin:0 auto;text-align:center}
+.slot-frame{background:rgba(10,10,40,0.8);border:2px solid rgba(255,215,0,0.2);
+  border-radius:20px;padding:32px 24px;position:relative;overflow:hidden;
+  box-shadow:0 0 40px rgba(255,215,0,0.05),inset 0 0 30px rgba(0,0,0,0.3)}
+.slot-frame::before{content:'';position:absolute;inset:-2px;border-radius:22px;
+  background:linear-gradient(135deg,var(--gold),var(--magenta),var(--cyan),var(--gold));
+  background-size:400% 400%;animation:slotBorder 8s linear infinite;opacity:0.15;z-index:0}
+@keyframes slotBorder{0%{background-position:0% 0%}100%{background-position:400% 0%}}
+.slot-reels{display:flex;justify-content:center;gap:14px;margin:24px 0;position:relative;z-index:1}
+.slot-reel{width:100px;height:100px;border-radius:14px;
+  background:linear-gradient(180deg,rgba(0,0,0,0.6),rgba(10,10,40,0.9));
+  border:2px solid rgba(255,215,0,0.15);display:flex;align-items:center;justify-content:center;
+  font-size:2.8rem;overflow:hidden;position:relative;
+  box-shadow:inset 0 2px 10px rgba(0,0,0,0.5),0 4px 15px rgba(0,0,0,0.3)}
+.slot-reel::before{content:'';position:absolute;inset:0;
+  background:linear-gradient(180deg,rgba(0,0,0,0.4) 0%,transparent 30%,transparent 70%,rgba(0,0,0,0.4) 100%);
+  z-index:2;pointer-events:none}
+.slot-reel .symbol-strip{display:flex;flex-direction:column;align-items:center;
+  transition:transform 0s;position:relative;z-index:1}
+.slot-reel .symbol-strip .sym{width:100px;height:100px;display:flex;align-items:center;
+  justify-content:center;flex-shrink:0}
+.slot-reel.spinning .symbol-strip{animation:none}
+.slot-reel.spinning{border-color:rgba(255,215,0,0.4);
+  box-shadow:inset 0 2px 10px rgba(0,0,0,0.5),0 0 25px rgba(255,215,0,0.15)}
+.slot-reel.landed{animation:reelLand .4s ease-out}
+@keyframes reelLand{0%{transform:scaleY(0.92)}40%{transform:scaleY(1.06)}70%{transform:scaleY(0.97)}100%{transform:scaleY(1)}}
+.slot-reel.jackpot{border-color:var(--gold)!important;
+  box-shadow:0 0 40px rgba(255,215,0,0.4),inset 0 0 20px rgba(255,215,0,0.1)!important;
+  animation:jackpotPulse .5s ease-in-out 3}
+@keyframes jackpotPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+.spin-btn{padding:16px 44px;background:linear-gradient(135deg,var(--gold),var(--orange));
+  border:none;border-radius:12px;font-family:'Press Start 2P',monospace;font-size:0.7rem;
+  color:#000;cursor:pointer;transition:all .3s;position:relative;z-index:1;
+  box-shadow:0 4px 20px rgba(255,215,0,0.2)}
+.spin-btn:hover:not(:disabled){transform:translateY(-3px);box-shadow:0 8px 35px rgba(255,215,0,0.35)}
+.spin-btn:active:not(:disabled){transform:scale(0.96)}
+.spin-btn:disabled{opacity:0.4;cursor:not-allowed;transform:none;filter:grayscale(0.5)}
+.slot-result{font-family:'Orbitron',monospace;font-size:1.1rem;margin-top:20px;min-height:32px;
+  position:relative;z-index:1;font-weight:700}
+.slot-result.win{animation:resultPop .5s ease-out}
+@keyframes resultPop{0%{transform:scale(0.5);opacity:0}50%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}
+.slot-cost{font-size:0.8rem;color:rgba(224,224,255,0.3);margin-top:10px;position:relative;z-index:1}
+.slot-paytable{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:20px;
+  text-align:left;position:relative;z-index:1}
+.slot-paytable .pay-row{display:flex;justify-content:space-between;padding:6px 12px;
+  border-radius:6px;background:rgba(255,255,255,0.02);font-size:0.75rem}
+.slot-paytable .pay-sym{font-size:1rem}
+.slot-paytable .pay-val{color:var(--gold);font-family:'Orbitron',monospace;font-weight:700}
 
 /* ═══════ LEADERBOARD ═══════ */
 .leaderboard{max-width:600px;margin:0 auto}
@@ -368,7 +400,9 @@ footer p{color:rgba(224,224,255,0.2);font-size:0.8rem}
   .battle-header{flex-direction:column;gap:20px}
   .hud{top:auto;bottom:12px;right:12px;flex-wrap:wrap;gap:6px}
   .hud-item{font-size:0.55rem;padding:4px 10px}
-  .slot-reels{gap:8px}.slot-reel{width:70px;height:70px;font-size:2rem}
+  .slot-reels{gap:8px}.slot-reel{width:70px;height:70px}
+  .slot-reel .sym{width:70px;height:70px;font-size:2rem}
+  .slot-frame{padding:20px 16px}.slot-paytable{grid-template-columns:1fr}
   .nav-links{display:none}
   .achievements-grid{grid-template-columns:1fr 1fr}
 }
@@ -534,14 +568,24 @@ footer p{color:rgba(224,224,255,0.2);font-size:0.8rem}
       <div class="sec-sub">Spend points to spin for bonus XP and power-ups</div>
     </div>
     <div class="slot-machine">
-      <div class="slot-reels">
-        <div class="slot-reel" id="reel1"><span class="symbol">📊</span></div>
-        <div class="slot-reel" id="reel2"><span class="symbol">🤖</span></div>
-        <div class="slot-reel" id="reel3"><span class="symbol">📈</span></div>
+      <div class="slot-frame">
+        <div class="slot-reels">
+          <div class="slot-reel" id="reel1"><div class="symbol-strip" id="strip1"><div class="sym">📊</div></div></div>
+          <div class="slot-reel" id="reel2"><div class="symbol-strip" id="strip2"><div class="sym">🤖</div></div></div>
+          <div class="slot-reel" id="reel3"><div class="symbol-strip" id="strip3"><div class="sym">📈</div></div></div>
+        </div>
+        <button class="spin-btn" id="spinBtn" onclick="spinSlots()">🎰 SPIN (50 PTS)</button>
+        <div class="slot-result" id="slotResult"></div>
+        <div class="slot-cost">Cost: 50 points per spin</div>
+        <div class="slot-paytable">
+          <div class="pay-row"><span class="pay-sym">💎💎💎</span><span class="pay-val">500</span></div>
+          <div class="pay-row"><span class="pay-sym">🔥🔥🔥</span><span class="pay-val">300</span></div>
+          <div class="pay-row"><span class="pay-sym">🎯🎯🎯</span><span class="pay-val">200</span></div>
+          <div class="pay-row"><span class="pay-sym">⚡⚡⚡</span><span class="pay-val">150</span></div>
+          <div class="pay-row"><span class="pay-sym">Any 2 match</span><span class="pay-val">~33%</span></div>
+          <div class="pay-row"><span class="pay-sym">No match</span><span class="pay-val">0</span></div>
+        </div>
       </div>
-      <button class="spin-btn" id="spinBtn" onclick="spinSlots()">🎰 SPIN (50 PTS)</button>
-      <div class="slot-result" id="slotResult"></div>
-      <div class="slot-cost">Cost: 50 points per spin</div>
     </div>
   </div>
 </section>
@@ -948,61 +992,144 @@ function addBattleLog(turn,text,type=''){
 }
 
 /* ═══════ SLOT MACHINE ═══════ */
-let spinning=false;
-function spinSlots(){
-  if(spinning||G.points<50)return;
-  G.points-=50;G.spins++;spinning=true;
-  updateHUD();
-  document.getElementById('spinBtn').disabled=true;
-  document.getElementById('slotResult').textContent='';
-  document.getElementById('slotResult').style.color='';
+let slotSpinning=false;
+const SLOT_SPIN_SPEED=50; // ms between symbol changes
+const SLOT_REEL_STEPS=[18,26,34]; // steps before each reel stops (staggered)
 
-  const results=[];
-  [1,2,3].forEach((n,i)=>{
-    const reel=document.getElementById('reel'+n);
+function buildStrip(targetId, finalSym){
+  const strip=document.getElementById(targetId);
+  strip.innerHTML='';
+  // Add extra symbols above for scroll effect
+  const count=20;
+  for(let i=0;i<count;i++){
+    const div=document.createElement('div');
+    div.className='sym';
+    div.textContent=SYMBOLS[Math.floor(Math.random()*SYMBOLS.length)];
+    strip.appendChild(div);
+  }
+  // Last symbol is the result
+  const final=document.createElement('div');
+  final.className='sym';
+  final.textContent=finalSym;
+  strip.appendChild(final);
+  return strip;
+}
+
+function animateReel(reelId, stripId, finalSym, steps){
+  return new Promise(resolve=>{
+    const reel=document.getElementById(reelId);
+    const strip=buildStrip(stripId, finalSym);
+    const symHeight=100; // matches CSS .slot-reel height
+
     reel.classList.add('spinning');
-    let count=0;
-    const iv=setInterval(()=>{
-      reel.querySelector('.symbol').textContent=SYMBOLS[Math.floor(Math.random()*SYMBOLS.length)];
-      playSpin();count++;
-      if(count>15+i*8){
-        clearInterval(iv);reel.classList.remove('spinning');
-        const finalSym=SYMBOLS[Math.floor(Math.random()*SYMBOLS.length)];
-        reel.querySelector('.symbol').textContent=finalSym;
-        results.push(finalSym);
-        if(results.length===3)evaluateSlots(results);
+    let currentStep=0;
+    const totalSyms=strip.children.length;
+    const finalIndex=totalSyms-1;
+    const startY=0;
+    const endY=-(finalIndex*symHeight);
+
+    // Easing: fast start, decelerate at end
+    function easeOut(t){return 1-Math.pow(1-t,3)}
+
+    const interval=setInterval(()=>{
+      currentStep++;
+      const progress=Math.min(currentStep/steps,1);
+      const eased=easeOut(progress);
+      const targetY=startY+(endY-startY)*eased;
+      strip.style.transform=`translateY(${targetY}px)`;
+
+      // Play tick sound at decreasing frequency
+      if(currentStep%3===0)playSpin();
+
+      if(currentStep>=steps){
+        clearInterval(interval);
+        // Snap to final position exactly
+        strip.style.transform=`translateY(${endY}px)`;
+        strip.style.transition='transform 0.1s ease-out';
+        reel.classList.remove('spinning');
+        reel.classList.add('landed');
+        setTimeout(()=>{
+          reel.classList.remove('landed');
+          strip.style.transition='';
+        },400);
+        resolve(finalSym);
       }
-    },80);
+    },SLOT_SPIN_SPEED);
   });
 }
 
+async function spinSlots(){
+  if(slotSpinning||G.points<50)return;
+  slotSpinning=true;
+  G.points-=50;G.spins++;
+  updateHUD();
+
+  const btn=document.getElementById('spinBtn');
+  const resEl=document.getElementById('slotResult');
+  btn.disabled=true;
+  resEl.textContent='SPINNING...';
+  resEl.className='slot-result';
+  resEl.style.color='var(--gold)';
+
+  // Pre-determine results
+  const finalResults=SYMBOLS.map(()=>SYMBOLS[Math.floor(Math.random()*SYMBOLS.length)]);
+  const results=[finalResults[0],finalResults[1],finalResults[2]];
+
+  // Spin all 3 reels in parallel with staggered stop times
+  const reelPromises=[
+    animateReel('reel1','strip1',results[0],SLOT_REEL_STEPS[0]),
+    animateReel('reel2','strip2',results[1],SLOT_REEL_STEPS[1]),
+    animateReel('reel3','strip3',results[2],SLOT_REEL_STEPS[2])
+  ];
+
+  await Promise.all(reelPromises);
+
+  // Small pause before showing result
+  await new Promise(r=>setTimeout(r,300));
+
+  evaluateSlots(results);
+}
+
 function evaluateSlots(results){
-  spinning=false;
+  slotSpinning=false;
   document.getElementById('spinBtn').disabled=false;
   const resEl=document.getElementById('slotResult');
+  resEl.classList.add('win');
+
+  const reel1=document.getElementById('reel1');
+  const reel2=document.getElementById('reel2');
+  const reel3=document.getElementById('reel3');
 
   if(results[0]===results[1]&&results[1]===results[2]){
-    // JACKPOT
+    // JACKPOT — all 3 match
     const reward=SYMBOL_VALS[results[0]]||100;
     G.points+=reward;G.achievements.add('jackpot');
-    resEl.textContent=`🎰 JACKPOT! +${reward} PTS`;
+    resEl.textContent=`🎰 JACKPOT! ${results[0]}${results[0]}${results[0]} — +${reward} PTS`;
     resEl.style.color='var(--gold)';
+    reel1.classList.add('jackpot');reel2.classList.add('jackpot');reel3.classList.add('jackpot');
+    setTimeout(()=>{reel1.classList.remove('jackpot');reel2.classList.remove('jackpot');reel3.classList.remove('jackpot')},2000);
     playJackpot();
-    spawnFloating(window.innerWidth/2,window.innerHeight/2,'JACKPOT!','critical');
+    spawnFloating(window.innerWidth/2,window.innerHeight/2-50,'JACKPOT!','critical');
+    spawnFloating(window.innerWidth/2-60,window.innerHeight/2,'+'+reward+' PTS','xp');
     checkQuests();
   }else if(results[0]===results[1]||results[1]===results[2]||results[0]===results[2]){
-    const match=results[0]===results[1]?results[0]:results[2];
-    const reward=Math.floor((SYMBOL_VALS[match]||50)/3);
+    // 2 match — small reward
+    let matchSym=results[0]===results[1]?results[0]:results[2];
+    const reward=Math.floor((SYMBOL_VALS[matchSym]||50)/3);
     G.points+=reward;
-    resEl.textContent=`Almost! +${reward} PTS`;
+    resEl.textContent=`Almost! ${results[0]}${results[1]}${results[2]} — +${reward} PTS`;
     resEl.style.color='var(--cyan)';
     playHeal();
+    spawnFloating(window.innerWidth/2,window.innerHeight/2,'+','heal');
   }else{
-    resEl.textContent='No match. Try again!';
+    // No match
+    resEl.textContent=`No match: ${results[0]} ${results[1]} ${results[2]}`;
     resEl.style.color='var(--red)';
     playDefeat();
   }
+
   updateHUD();
+  setTimeout(()=>{resEl.classList.remove('win')},500);
 }
 
 /* ═══════ LEADERBOARD ═══════ */
