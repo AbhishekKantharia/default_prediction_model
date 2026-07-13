@@ -96,12 +96,14 @@ for k in ['recommended_rate','optimal_rate','minimum_acceptable_rate','expected_
             print('  %s: %s' % (k, val))
 
 el = pricing.compute_expected_loss(0.15, 0.45, 500000)
-print('  Expected loss (PD*LGD*EAD): INR %s' % '{:,.0f}'.format(el))
+print('  Expected loss: INR %s' % '{:,.0f}'.format(el['expected_loss']))
+print('  Expected loss rate: %.2f%%' % (el['expected_loss_rate'] * 100))
 
 emi_calc = EMICalculator()
-emi = emi_calc.compute_emi(500000, p.get('recommended_rate', 12), 60)
-print('  EMI: INR %s' % '{:,.0f}'.format(emi))
-schedule = emi_calc.compute_amortization_schedule(500000, p.get('recommended_rate', 12), 60)
+rec_rate = max(p.get('recommended_rate', 12), 6.0)
+emi = emi_calc.compute_emi(500000, rec_rate, 60)
+print('  EMI (at %.1f%%): INR %s' % (rec_rate, '{:,.0f}'.format(emi)))
+schedule = emi_calc.compute_amortization_schedule(500000, rec_rate, 60)
 total_int = sum(row['interest'] for row in schedule)
 print('  Total interest over 60 months: INR %s' % '{:,.0f}'.format(total_int))
 
