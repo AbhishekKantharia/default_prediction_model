@@ -1051,10 +1051,11 @@ class BankingDataGenerator:
             for _ in range(count):
                 day = self.rng.randint(1, 28)
                 amt = self.rng.uniform(low, high) * festival_boost
-                channel = self.rng.choice(
-                    [ChannelType.UPI, ChannelType.CARD, ChannelType.CASH, ChannelType.NEFT],
-                    p=[0.5, 0.25, 0.1, 0.15],
+                channel_idx = self.rng.choice(
+                    [0, 1, 2, 3], p=[0.5, 0.25, 0.1, 0.15]
                 )
+                channel_options = [ChannelType.UPI, ChannelType.CARD, ChannelType.CASH, ChannelType.NEFT]
+                channel = channel_options[int(channel_idx)]
                 txns.append(self._make_txn(
                     account_id,
                     datetime(year, month, day),
