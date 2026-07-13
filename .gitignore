@@ -1,1 +1,15 @@
 .vercel
+__pycache__/
+*.pyc
+*.pyo
+*.db
+mlruns_test.db
+mlruns/
+mlruns_test/
+mlruns_test.db-journal
+*.egg-info/
+dist/
+build/
+.env
+node_modules/
+test_integration.py
