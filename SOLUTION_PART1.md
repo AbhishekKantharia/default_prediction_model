@@ -260,3 +260,40 @@ The Inter typeface family is chosen for its exceptional readability at small siz
 ### Design Language
 
 The DrishtiAI design language follows three principles: **Clarity** (every element serves a purpose; no decorative elements that don't contribute to understanding), **Density** (credit risk professionals need to see many data points simultaneously; the UI maximizes information density without sacrificing readability), and **Confidence** (the system makes high-stakes recommendations; the design communicates authority and reliability through consistent spacing, precise alignment, and restrained use of color). Dashboard layouts use a 12-column grid system with 24px base spacing. Cards have 16px border radius and subtle drop shadows (0 2px 4px rgba(0,0,0,0.06)). Interactive elements use the Insight Teal accent with smooth 200ms transitions. Risk indicators use a consistent 5-level color scale from Safe Green (Level 1) through Risk Amber (Level 3) to Alert Crimson (Level 5).
+---
+
+# 3. Problem Analysis
+
+## 3.1 Why Defaults Occur
+
+Credit defaults in the Indian context occur due to a complex interplay of borrower-specific, institutional, and macroeconomic factors that interact in non-linear and often unpredictable ways. At the most fundamental level, a default occurs when a borrower's cash inflows become insufficient to meet their debt obligations — but the causes of this cash flow deterioration are myriad and diverse. For retail borrowers (salaried individuals), the primary drivers of default are income disruption (job loss, salary cuts, unpaid leave), over-leveraging (taking on multiple simultaneous loans without adequate income headroom), medical emergencies (which account for an estimated 25-30% of personal loan defaults in India), and life events (divorce, death of a co-borrower, relocation). For MSME borrowers, the causes are even more diverse: customer concentration risk (relying on one or two large buyers), raw material price volatility (particularly acute in sectors like textiles, metals, and food processing), working capital mismatches (where receivable cycles extend beyond payable cycles), and management capability gaps (especially in family-owned businesses facing succession transitions).
+
+A critical and underappreciated cause of defaults in India is the phenomenon of 'loan stacking' — where borrowers take multiple loans from different lenders (including fintech apps and informal sources) without any single lender having visibility into the borrower's total exposure. The rise of digital lending has dramatically accelerated this phenomenon: a borrower can now take 5-10 instant personal loans from different fintech apps within days, creating a total debt burden that is catastrophically unsustainable. Indian credit bureaus capture most formal loans, but informal lending (from moneylenders, chit funds, peer lending, and family borrowings) remains largely invisible, creating a systematic blind spot in risk assessment. Additionally, willful defaults — where borrowers who have the capacity to repay choose not to — account for an estimated 10-15% of NPAs in India, particularly in the corporate and MSME segments. These require fundamentally different detection strategies than capacity-driven defaults, as the behavioral signals are often subtle and intentionally obscured.
+
+## 3.2 Leading Indicators
+
+Leading indicators are measurable signals that precede default, providing early warning of deterioration before the borrower actually misses a payment. These are the most valuable inputs for predictive models because they enable proactive intervention. The key leading indicators in the Indian context include:
+
+1. **Declining bank balance trajectory**: A borrower whose average monthly bank balance has declined by >30% over three consecutive months shows a cash flow deterioration pattern that strongly precedes default, typically by 4-8 months. This signal is particularly powerful for MSME borrowers whose business cash flows are directly visible in bank statement data.
+
+2. **Increased credit utilization across bureau**: When a borrower's aggregate credit utilization (across all credit cards and revolving facilities) rises above 70%, it signals financial stress. A month-on-month increase in utilization from 40% to 75% is one of the strongest leading indicators for retail loan defaults, with predictive power 3-6 months before default.
+
+3. **New inquiry spike**: A sudden increase in credit bureau inquiries (3+ inquiries in 30 days) indicates the borrower is desperately seeking credit from multiple sources, a classic sign of financial distress. Research by CIBIL shows that borrowers with >5 inquiries in 90 days are 4x more likely to default than those with 0-1 inquiries.
+
+4. **Salary account irregularity**: For salaried borrowers, irregular credits to salary accounts (indicating job instability), reduced salary amounts, or conversion of salary account to a general savings account are strong leading indicators. Data from bank statement analysis shows these signals precede default by 2-6 months.
+
+5. **EMI bounce pattern**: The first EMI bounce is often a strong predictor of subsequent bounces and eventual default. Borrowers who bounce their first EMI have a 35-40% chance of defaulting within 12 months, compared to 3-5% for those with clean initial EMI history.
+
+6. **GST filing irregularity (MSME)**: For GST-registered businesses, late or irregular GST filing is a leading indicator of operational distress. Businesses that miss two consecutive GST filing deadlines have a 4x higher probability of default within 9 months.
+
+7. **Declining current account balance trend**: For business borrowers, a declining current account balance trend — particularly when it drops below the minimum balance requirement or triggers overdraft utilization — is a strong signal of working capital stress that typically precedes default by 3-9 months.
+
+8. **Social/behavioral signals**: Changes in customer communication patterns (increased complaint frequency, unresponsiveness to calls, change of phone number), relationship manager downgrade notes, and customer-initiated requests for loan restructuring are behavioral leading indicators that carry significant predictive value.
+
+9. **Industry-specific leading indicators**: Sector-specific signals such as declining order books (manufacturing), reduced tenant occupancy (real estate), declining patient footfall (hospitals with medical equipment loans), or reduced vehicle utilization (transport sector loans) provide early warning that is specific to the borrower's business context.
+
+10. **Regulatory/policy changes**: Government policy changes such as changes in export duties (textiles, steel), environmental regulations (real estate, manufacturing), or subsidy structures (agriculture) can serve as leading indicators for sector-wide stress.
+
+11. **Property price movement**: For secured loans (home loans, LAP), declining property valuations in the borrower's micro-market can lead to negative equity situations that correlate with strategic defaults, particularly when the outstanding loan amount approaches or exceeds the current market value.
+
+12. **Co-borrower/guarantor distress**: When a co-borrower or guarantor on a loan experiences their own credit deterioration (visible through bureau data), the primary borrower's default probability increases significantly due to shared financial stress or weakened support structures.
