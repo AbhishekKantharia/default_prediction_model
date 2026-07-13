@@ -883,7 +883,7 @@ function predictDefault(e){
 
   const creditImpact=(750-score)/8;
   risk+=Math.max(0,creditImpact);
-  if(score<620)rf.push({n:'Low Credit Score',d:score+' (subprime)'});
+  if(score<620)rf.push({n:'Low CIBIL Score',d:score+' (subprime)'});
   else if(score>=750)pf.push({n:'Excellent Credit',d:score+''});
   else if(score>=700)pf.push({n:'Good Credit',d:score+''});
 
