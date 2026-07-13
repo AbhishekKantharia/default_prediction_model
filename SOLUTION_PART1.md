@@ -382,3 +382,311 @@ State-level institutional factors — court efficiency, land registration qualit
 ## 3.15 Seasonality
 
 The Indian agricultural calendar creates distinct seasonal patterns: kharif stress peaks in August-October before harvest, rabi stress peaks in February-March. Festival seasons create retail credit patterns: Diwali spending spikes in October-November, followed by elevated defaults in January-MMarch. The wedding season (November-February) drives gold loan and personal loan demand, with default rates peaking 6-9 months later. DrishtiAI incorporates explicit seasonality features to account for these predictable patterns.
+---
+
+# 4. Data Sources
+
+## 4.1 Structured Data Sources
+
+### 4.1.1 Loan History Data
+
+**What specific data is captured**: Loan history includes the complete record of all loans ever taken by the borrower — both from the originating institution and (through bureau data) from all other lenders. This encompasses: loan type (home loan, auto loan, personal loan, gold loan, education loan, business loan, KCC, etc.), original loan amount, current outstanding balance, original tenure, remaining tenure, interest rate (fixed/floating), EMI amount, disbursement date, maturity date, and repayment schedule. For closed loans, it includes closure date, prepayment patterns, and final status (regular closure, premature closure, settled, written-off, or settled-for-less).
+
+**How it contributes to prediction**: Loan history provides the foundational risk profile of a borrower. The number of simultaneous active loans indicates leverage level. The mix of secured vs. unsecured loans indicates risk profile. Loan vintage is a strong predictor — very new borrowers (<6 months credit history) have 2-3x higher default rates. Prepayment behavior indicates financial health. Conversely, borrowers with a history of loan settlements or write-offs are extremely high risk.
+
+**Feature engineering possibilities**: Total credit exposure (sum of all outstanding balances), credit mix ratio (secured/unsecured split), loan count by type, average loan age, credit tenure (time since first loan), prepayment rate, loan stacking velocity (number of new loans in past 3/6/12 months), weighted average interest rate, tenure mismatch, and leverage trend.
+
+**Data quality considerations**: Cross-bureau data integration can be challenging due to different reporting standards and timing. Some loans may not be reported to all four bureaus. The lag in bureau reporting (typically 15-30 days) means that very recent changes may not be reflected.
+
+**Privacy/regulatory considerations**: Bureau data usage must comply with RBI's Fair Practices Code and the Credit Information Companies (Regulation) Act. Borrower consent is required. DPDPA 2023 provisions apply.
+
+### 4.1.2 Repayment History Data
+
+**What specific data is captured**: Repayment history provides month-by-month records of the borrower's repayment behavior on each active and closed loan. For each payment period, it captures: whether the payment was made on time, the number of days past due (DPD) if delayed (30, 60, 90, 120, 150, 180+ DPD), the amount paid (full EMI, partial payment, or zero), and the date of payment. CIBIL reports repayment history for 36 months, while Experian and CRIF High Mark report for up to 60 months.
+
+**How it contributes to prediction**: Repayment history is the single most predictive structured feature for default prediction. The pattern of repayment — not just the current status — carries critical information. The severity trajectory (improving, stable, or deteriorating) is highly predictive. Research across Indian credit bureaus consistently shows that recent repayment behavior (past 6 months) is 3-5x more predictive than older behavior, and that the transition probabilities between DPD states are among the most powerful predictive features.
+
+**Feature engineering possibilities**: Maximum DPD in last 3/6/12/24/36 months, number of accounts with 30+ DPD in last 6/12 months, weighted average DPD across all accounts, repayment consistency score, DPD transition matrix features, recent deterioration flag, and best-ever vs. current DPD comparison.
+
+**Data quality considerations**: Repayment history coverage varies by bureau (CIBIL: 36 months, Experian: 60 months, CRIF: 60 months). The lag in reporting means that very recent payments may not appear.
+
+**Privacy/regulatory considerations**: Same bureau data regulations apply. Negative information can be reported for up to 7 years from the date of default.
+
+### 4.1.3 EMI Delay Patterns
+
+**What specific data is captured**: EMI delay patterns provide granular detail about the timing and magnitude of payment delays beyond the simple DPD classification. This includes: exact number of days of delay for each EMI, pattern of delays (always late by the same number of days, progressively worsening, or random), partial payment amounts and timing, bounce reasons (insufficient funds, account closed, stop payment, technical issues), and bounce frequency.
+
+**How it contributes to prediction**: EMI delay patterns reveal behavioral tendencies that simple DPD classification misses. A borrower who consistently pays 5 days late may be experiencing a structural cash flow timing issue, while a borrower who suddenly shifts from on-time to 10 days late is experiencing genuine deterioration. The pattern of bounce reasons is also informative: 'insufficient funds' bounces indicate cash flow stress, while 'technical issues' bounces indicate operational problems.
+
+**Feature engineering possibilities**: Average days of EMI delay, EMI delay standard deviation, bounce-to-payment ratio, consecutive bounce count, bounce reason distribution, partial payment ratio, and EMI payment predictability score.
+
+### 4.1.4 Account Balance Data
+
+**What specific data is captured**: Account balance data includes daily, weekly, or monthly snapshots of the borrower's account balances across all accounts held with the reporting bank. This encompasses opening balance, closing balance, minimum balance, maximum balance, and average balance for each period. For current accounts (business borrowers), it includes overdraft utilization, credit limit, and turnover.
+
+**How it contributes to prediction**: Account balances provide a real-time window into the borrower's financial health. A declining average balance trend is one of the strongest leading indicators of default, typically preceding missed payments by 2-6 months. The minimum balance metric is particularly powerful: borrowers whose minimum monthly balance is approaching zero are in acute cash flow stress.
+
+**Feature engineering possibilities**: Average balance trend (3/6/12-month slope), balance volatility (coefficient of variation), minimum balance frequency, balance utilization rate, net cash flow, balance coverage ratio (average balance / monthly EMI obligation), and days with negative or near-zero balance.
+
+### 4.1.5 Transaction Data
+
+**What specific data is captured**: Transaction data provides a detailed record of all debits and credits to the borrower's accounts, including: transaction date, amount, type (NEFT, RTGS, UPI, IMPS, cheque, cash deposit/withdrawal, card transaction, EMI auto-debit), counterparty information, narration/description, and channel (branch, online, mobile).
+
+**How it contributes to prediction**: Transaction data is the richest structured data source for understanding borrower behavior. The pattern, frequency, and composition of transactions reveal income stability, spending behavior, financial management quality, and business health. Key predictive signals include: salary credit regularity, income-to-expense ratio, cash withdrawal patterns, and transaction counterparties.
+
+**Feature engineering possibilities**: Monthly income, monthly expenses, savings rate, cash withdrawal ratio, transaction frequency trend, unique counterparty count, EMI auto-debit success rate, income source concentration, spending category breakdown, and net transfer balance.
+
+**Data quality considerations**: Transaction data quality varies significantly by channel — UPI and card transactions have rich metadata, while cash transactions have minimal information. Multi-bank transaction visibility is limited without Account Aggregator (AA) framework integration.
+
+### 4.1.6 Credit Bureau Data
+
+**What specific data is captured**: Indian credit bureau data (from CIBIL, Experian, CRIF High Mark, and Equifax) provides a comprehensive credit profile including: all active and closed loan/credit card accounts, repayment history (36-60 months), credit utilization, credit inquiries (hard and soft), public records (court judgments, insolvency proceedings, SARFAESI actions), and the bureau-generated credit score (300-900 for CIBIL).
+
+**How it contributes to prediction**: Credit bureau data is the most widely used data source for credit risk assessment in India. The credit score aggregates multiple dimensions into a single number, but the detailed components — individual account histories, inquiry patterns, and public records — carry significantly more predictive information than the score alone.
+
+**Feature engineering possibilities**: Credit score and trajectory, total credit limit vs. total utilization, account age statistics, inquiry frequency, inquiry recency, public record flags, account status distribution, and bureau score volatility.
+
+### 4.1.7 Collateral Data
+
+**What specific data is captured**: For secured loans, collateral data includes: property/asset description, location details, valuation amount (at origination and current), type of collateral (residential property, commercial property, land, gold, machinery, inventory, receivables, securities), encumbrance status, insurance coverage details, and depreciation schedule.
+
+**How it contributes to prediction**: Collateral quality directly impacts loss given default (LGD). A well-collateralized loan with a low LTV ratio has lower risk. Collateral value trends are also important — declining collateral values increase risk by eroding the lender's security cover.
+
+**Feature engineering possibilities**: LTV ratio, LTV trend, collateral coverage ratio, collateral type categorization, collateral age and depreciation, insurance adequacy, and encumbrance ratio.
+
+### 4.1.8 Interest Rate Data
+
+**What specific data is captured**: The applicable interest rate for each loan (fixed or floating), the benchmark rate (repo rate, MCLR, EBLR), the spread/margin over the benchmark, rate reset frequency, and historical rate changes.
+
+**How it contributes to prediction**: Interest rate changes directly impact borrower EMI burden. For floating-rate borrowers (~80% of Indian home loans), rate increases translate to higher EMIs. The sensitivity analysis (how much additional EMI burden from a 100bp or 200bp rate increase) provides forward-looking risk assessment.
+
+**Feature engineering possibilities**: Interest rate sensitivity, rate gap (borrower's rate vs. current market rate), rate type, rate vintage, and cumulative rate increase impact.
+
+### 4.1.9 Credit Score Data
+
+**What specific data is captured**: Indian credit bureau scores: CIBIL Score (300-900), Experian Credit Score (250-900), CRIF High Mark Score (300-850), and Equifax Credit Score (1-999). Each considers: repayment history (30-35% weight), credit utilization (25-30%), credit history length (10-15%), credit mix (10%), and recent credit activity (10%).
+
+**How it contributes to prediction**: Score trajectory is more informative than absolute score: a borrower whose CIBIL score has declined from 750 to 680 over 6 months is significantly riskier than one stable at 680. Score volatility may indicate unstable credit behavior. The score's predictive power is strongest in the mid-range (600-750).
+
+**Feature engineering possibilities**: Bureau score by bureau, score rank, score trajectory, score volatility, score range utilization, and cross-bureau score discrepancy.
+
+### 4.1.10 Loan Utilization Data
+
+**What specific data is captured**: For working capital facilities (cash credit, overdraft), utilization varies daily: current utilization (amount drawn), available limit, peak utilization, average utilization, and utilization frequency.
+
+**How it contributes to prediction**: For MSME borrowers, utilization patterns are highly predictive. High and increasing utilization indicates cash flow stress. Very low or declining utilization may indicate business contraction. Optimal utilization (40-70%) indicates normal business activity with adequate buffer.
+
+**Feature engineering possibilities**: Current utilization ratio, utilization trend, utilization volatility, days at high utilization, utilization seasonality pattern, peak-to-average utilization ratio, and utilization change velocity.
+
+### 4.1.11 Borrower Demographic Data
+
+**What specific data is captured**: Age, gender, marital status, number of dependents, education level, occupation category, employer name and type, years in current employment/business, residential status, and city/state/PIN code.
+
+**How it contributes to prediction**: Age has a U-shaped relationship with default risk. Occupation category significantly influences risk — salaried employees of large organizations typically have lower default rates than self-employed individuals. Income-to-EMI ratio is fundamental to repayment capacity.
+
+**Feature engineering possibilities**: Age-income interaction, occupation risk category, employer stability score, income-to-EMI ratio, income-to-loan ratio, residential stability score, and urbanization index.
+
+### 4.1.12 Business Turnover Data
+
+**What specific data is captured**: Annual revenue/sales figures (from financial statements, GST returns, or bank statement analysis), quarterly/monthly revenue trends, revenue by segment, customer concentration, and geographic distribution.
+
+**How it contributes to prediction**: Business turnover is the fundamental determinant of repayment capacity for business borrowers. Declining turnover is one of the strongest predictors. The turnover trajectory, seasonality pattern, and comparison to industry norms are more informative than the raw figure.
+
+**Feature engineering possibilities**: Revenue growth rate, revenue concentration index, revenue volatility, revenue-to-debt ratio, and revenue seasonality index.
+
+### 4.1.13 GST Data
+
+**What specific data is captured**: GST registration details, monthly/quarterly GST returns (GSTR-1, GSTR-3B), invoice-level transaction data, input tax credit (ITC) claims, tax payment history, compliance status, and registration cancellations.
+
+**How it contributes to prediction**: GST data provides verified, government-stamped revenue information for MSMEs. Monthly GST filing provides a granular, near-real-time view of business activity far more reliable than self-reported financial statements. Key signals: revenue growth trajectory, buyer diversity, ITC claiming pattern, and filing regularity.
+
+**Feature engineering possibilities**: Monthly GST turnover trend, GST revenue growth rate, buyer concentration index, ITC utilization ratio, filing regularity score, GST compliance rating, GST revenue vs. bank statement revenue comparison, and interstate vs. intrastake sales ratio.
+
+### 4.1.14 Tax Records
+
+**What specific data is captured**: Income tax return (ITR) data including: reported income (salary, business income, capital gains, rental income), deductions claimed, tax paid (TDS, advance tax, self-assessment tax), return filing history, and assessment details. For businesses, ITR includes P&L and Balance Sheet.
+
+**How it contributes to prediction**: ITR data provides the most comprehensive view of a borrower's total financial picture. Key signals: income trend, income consistency, tax compliance, and income-source diversification.
+
+**Feature engineering possibilities**: Income growth rate, income volatility, tax compliance score, business profit margin, asset-to-debt ratio, working capital position, and net worth trend.
+
+### 4.1.15 Investment Data
+
+**What specific data is captured**: Mutual fund holdings, demat account holdings, fixed deposits, PPF/NPS/EPF balances, accessible through Account Aggregator framework.
+
+**How it contributes to prediction**: Investment data provides insight into financial health, risk appetite, and liquidity buffer. Diversified investment portfolios indicate greater financial resilience. Investment redemption patterns can indicate financial stress.
+
+**Feature engineering possibilities**: Total investment value, investment-to-debt ratio, investment diversification index, liquid investment ratio, investment redemption velocity, and equity exposure percentage.
+
+### 4.1.16 Savings and Insurance Data
+
+**What specific data is captured**: Savings account balances, recurring deposits, life insurance policies (sum assured, premium, cash value), health insurance coverage, and general insurance.
+
+**How it contributes to prediction**: Insurance coverage is an important risk mitigant — borrowers with adequate insurance are better protected against income shocks. Savings levels indicate emergency fund adequacy.
+
+**Feature engineering possibilities**: Savings-to-EMI ratio, insurance coverage adequacy, premium burden, insurance lapse flags, and savings trend.
+
+### 4.1.17 Existing Liabilities Data
+
+**What specific data is captured**: All active loans, credit card outstanding, BNPL obligations, guarantee obligations, contingent liabilities, and tax arrears.
+
+**How it contributes to prediction**: Total liabilities determine debt burden and repayment capacity constraints. The DTI ratio is the most critical affordability metric. Off-balance-sheet liabilities (guarantees, contingencies) represent hidden risk.
+
+**Feature engineering possibilities**: Total debt outstanding, DTI ratio, DTI trend, debt service coverage ratio, contingent liability exposure, and near-prime debt share.
+
+### 4.1.18 Macroeconomic Indicators
+
+**What specific data is captured**: RBI policy rates, bank lending rates, inflation data (CPI, WPI), GDP growth, industrial production index (IIP), PMI, employment indicators, trade data, commodity prices, forex rates, fiscal deficit data, and monsoon/rainfall data.
+
+**How it contributes to prediction**: Macroeconomic indicators provide systemic context. RBI rate changes directly impact floating-rate borrowers. Inflation erodes real income. Sector-specific indicators provide sector-level risk context. Monsoon data is a leading indicator for agricultural credit risk.
+
+**Feature engineering possibilities**: Real interest rate, rate change momentum, inflation trajectory, GDP growth momentum, PMI trend, commodity price exposure index, exchange rate volatility, and monsoon deviation.
+## 4.2 Unstructured Data Sources
+
+### 4.2.1 Loan Applications (Free-text Fields)
+
+**What specific data is captured**: Loan application forms contain free-text narrative sections including: purpose of loan description, business description (for MSME loans), asset description, additional income sources, explanation of negative credit events, and additional remarks by the applicant.
+
+**How it contributes to prediction**: Free-text narratives provide qualitative information not captured in structured fields. The language complexity, specificity, and consistency of the narrative can be analyzed using NLP techniques. Inconsistencies between the narrative and structured data may indicate misrepresentation. Emotional tone can provide behavioral signals.
+
+**Feature engineering possibilities**: Narrative length and complexity score, consistency score (narrative vs. structured data), entity extraction, sentiment polarity and subjectivity, specificity score, and topic classification.
+
+**Data quality considerations**: Free-text quality varies enormously. OCR quality affects downstream NLP processing for handwritten or scanned applications. Multi-language content requires multilingual NLP capabilities.
+
+### 4.2.2 Bank Statements (OCR and PDF Parsing)
+
+**What specific data is captured**: Bank statements (typically PDF or scanned images) contain transaction details (date, description, debit, credit, balance), account header information, summary information, and sometimes additional information (EMI bounce details, charges). The document format varies across 100+ different bank formats in India.
+
+**How it contributes to prediction**: Bank statements provide the most granular and verified view of borrower cash flow dynamics. Beyond transaction data, the document itself carries signals: the bank (private vs. PSU vs. cooperative) indicates banking relationship quality, and anomalies may indicate document tampering.
+
+**Feature engineering possibilities**: Transaction-level features (from parsed data), document metadata, document consistency score, anomaly indicators, and cash flow stability metrics.
+
+**Data quality considerations**: OCR accuracy varies by document quality — clean digital PDFs achieve >99% accuracy, while scanned documents may have 85-95% accuracy. Indian bank statement formats are notoriously diverse (100+ formats), requiring format-specific parsers.
+
+### 4.2.3 Financial Statements (Balance Sheet, P&L)
+
+**What specific data is captured**: Balance Sheet (assets, liabilities, equity), Profit & Loss statement (revenue, costs, profit), Cash Flow Statement, and Notes to Accounts (accounting policies, contingent liabilities, related party transactions).
+
+**How it contributes to prediction**: Financial statements provide the most comprehensive view of business borrower financial health. Key analytical dimensions: profitability trends, liquidity ratios, leverage ratios, working capital cycle, and cash flow analysis. NLP analysis of notes can extract contingent liabilities and related party transactions.
+
+**Feature engineering possibilities**: 30+ traditional financial ratios, Altman Z-score adaptations, trend features, peer comparison features, and text-based features from notes.
+
+### 4.2.4 Auditor Notes and Reports
+
+**What specific data is captured**: Auditor's opinion (unqualified, qualified, adverse, disclaimer), management discussion, going concern assessments, emphasis of matter paragraphs, key audit matters, internal control observations, and related party transaction disclosures.
+
+**How it contributes to prediction**: Auditor reports are among the most information-dense unstructured documents. An 'emphasis of matter' regarding going concern carries far more predictive information than many structured features. The trend in audit opinions is a powerful leading indicator.
+
+**Feature engineering possibilities**: Audit opinion classification, going concern flag, emphasis of matter severity, key audit matters topic classification, and opinion trend.
+
+### 4.2.5 Relationship Manager Notes
+
+**What specific data is captured**: Meeting notes from borrower interactions, observations about business and management, informal intelligence about reputation, updates on business developments, collection interaction notes, and risk assessment narratives.
+
+**How it contributes to prediction**: RM notes represent a rich source of qualitative, relationship-based intelligence not available through any external data source. The RM's assessment of management quality, business trajectory, and borrower integrity provides information orthogonal to quantitative financial data.
+
+**Feature engineering possibilities**: RM sentiment score, RM risk mention frequency, RM update recency, RM concern count, RM confidence indicator, and RM observation consistency.
+
+### 4.2.6 Customer Emails and Correspondence
+
+**What specific data is captured**: Emails to/from the bank, written complaints, service requests, loan-related queries, dispute communications, and any other written interaction between borrower and institution.
+
+**How it contributes to prediction**: Customer communication patterns provide behavioral and contextual signals. A sudden increase in complaint frequency may indicate distress. Communication about financial difficulties provides direct insight into the borrower's financial situation.
+
+**Feature engineering possibilities**: Communication frequency trend, sentiment trajectory, complaint escalation count, financial difficulty mentions, and communication recency.
+
+### 4.2.7 Call Center Transcripts and Chat Conversations
+
+**What specific data is captured**: Complete text of interactions between borrowers and customer service or collections team, including purpose of call, borrower's stated situation, promises to pay, disputes raised, and financial information disclosed.
+
+**How it contributes to prediction**: Call center interactions are among the most revealing sources of behavioral signals. Patterns in call behavior — avoiding calls, providing changing excuses, or becoming hostile — provide behavioral risk signals. NLP analysis can extract promise-to-pay compliance, cooperation level, and stress indicators.
+
+**Feature engineering possibilities**: Promise-to-pay compliance rate, call avoidance score, sentiment in collection calls, cooperation level score, stress language indicator, and call duration trend.
+
+### 4.2.8 KYC Documents
+
+**What specific data is captured**: Aadhaar card, PAN card, passport, voter ID, driving license, utility bills, bank statements, photographs, and for businesses: MSME registration, GST certificate, partnership deeds, and company incorporation documents.
+
+**How it contributes to prediction**: KYC documents serve identity verification (fraud prevention), address verification (geographic risk assessment), consistency checking, and document authenticity assessment. The quality and completeness of KYC documentation provides a behavioral signal.
+
+**Feature engineering possibilities**: KYC completeness score, document consistency cross-check score, address stability, identity verification confidence score, and KYC red flags.
+
+### 4.2.9 Legal Notices and Court Documents
+
+**What specific data is captured**: Demand notices under SARFAESI Act, legal notice letters, DRT filings, court orders, IBC proceedings, arbitration proceedings, and legal opinions.
+
+**How it contributes to prediction**: Legal proceedings provide definitive information about credit status and recovery efforts. IBC proceedings indicate severe financial distress. NLP analysis can extract dispute nature, amounts involved, and potential outcomes.
+
+**Feature engineering possibilities**: Legal proceeding count, proceeding type classification, IBC proceeding flag, litigation stage, and estimated recovery timeline.
+
+### 4.2.10 News Articles and Media Coverage
+
+**What specific data is captured**: Articles about the borrower from print and online media, industry news, regulatory news, economic news, and social media mentions from sources like Economic Times, Business Standard, Mint, and Dainik Bhaskar.
+
+**How it contributes to prediction**: News data provides real-time, forward-looking information. A news article about a company losing a major contract provides early warning that may precede financial deterioration by months. Industry-wide news provides sector risk context.
+
+**Feature engineering possibilities**: News sentiment score, news volume trend, negative news count, industry news sentiment, and regulatory risk score.
+
+### 4.2.11 Company Annual Reports and Filings
+
+**What specific data is captured**: Chairman/MD letter, management discussion and analysis (MD&A), detailed financial statements with notes, corporate governance report, director's report, and auditor's report.
+
+**How it contributes to prediction**: NLP analysis can extract management tone and sentiment (which correlates with future performance), risk factors disclosed by management, forward-looking statements, related-party transactions, and corporate governance quality.
+
+**Feature engineering possibilities**: MD&A sentiment score, risk factor count and severity, forward-looking statement analysis, related-party transaction flags, and governance quality score.
+
+### 4.2.12 Court Filings and Legal Databases
+
+**What specific data is captured**: Case filings, court orders, judgment text, case status updates, and party details from DRTs, NCLT, high courts, and district courts (accessible through eCourts, Indian Kanoon, SCC Online).
+
+**How it contributes to prediction**: Court filings provide real-time information about legal proceedings. Cross-referencing court filings across borrowers can reveal connected litigation indicating network risk.
+
+**Feature engineering possibilities**: Court case count by type, case stage classification, judgment analysis, NCLT/IBC case flag, and connected litigation network features.
+
+### 4.2.13 PDF Documents and Embedded Data
+
+**What specific data is captured**: Tables, charts, forms, annotations, metadata (author, creation date, modification history, digital signatures) from various PDF documents including valuation reports, technical reports, and legal opinions.
+
+**How it contributes to prediction**: PDF document processing is an enabling capability. Advanced PDF processing can detect document manipulation, extract information from complex multi-page documents, and handle the enormous variety of formats.
+
+**Feature engineering possibilities**: Document metadata features, table extraction quality scores, embedded image analysis, digital signature verification status, and document complexity metrics.
+
+### 4.2.14 Images and Visual Data
+
+**What specific data is captured**: Property photographs, site visit photographs, vehicle photographs, business premise photographs, satellite/aerial imagery, and document photographs.
+
+**How it contributes to prediction**: Computer vision techniques can detect property condition deterioration, verify property existence, assess neighborhood quality, and detect document tampering. Satellite imagery can verify agricultural land use and crop health.
+
+**Feature engineering possibilities**: Property condition score, location quality index, crop health score (NDVI), construction progress assessment, and document authenticity score.
+
+### 4.2.15 Voice Transcripts (Call Recordings)
+
+**What specific data is captured**: Automated speech recognition output from call recordings across customer service, collection, televerification, and branch interaction touchpoints.
+
+**How it contributes to prediction**: Speech pattern analysis can detect stress indicators, evasiveness, cooperation level, and emotional state — all of which correlate with financial distress or intentionality of default.
+
+**Feature engineering possibilities**: Speech pattern stress indicators, cooperation level score, promise-to-pay confidence assessment, emotional state classification, and call outcome classification.
+
+### 4.2.16 Social Sentiment Data
+
+**What specific data is captured**: Social media posts mentioning the borrower from Twitter (X), LinkedIn, Facebook, and industry forums; sentiment polarity and intensity; engagement metrics; and viral content.
+
+**How it contributes to prediction**: Social sentiment provides real-time, crowd-sourced assessment of borrower reputation. Sudden spikes in negative sentiment may indicate emerging issues before they appear in financial data. Industry-wide sentiment trends provide sector risk context.
+
+**Feature engineering possibilities**: Social sentiment score, sentiment trend, negative sentiment spike detection, social media engagement rate, and industry sentiment index.
+
+### 4.2.17 Regulatory Filings and Government Data
+
+**What specific data is captured**: MCA filings, SEBI filings (insider trading, bulk deals, share pledging), RBI regulatory actions, environmental clearances, FSSAI registrations, drug licenses, and telecom licenses.
+
+**How it contributes to prediction**: Director resignations may signal internal issues. High promoter pledge levels (>50%) are associated with higher default risk. Environmental regulatory actions can impact business operations.
+
+**Feature engineering possibilities**: Director change frequency, promoter pledge ratio, regulatory action count, license validity status, and compliance filing regularity.
+
+### 4.2.18 Satellite and Geospatial Data
+
+**What specific data is captured**: Optical satellite imagery, radar imagery, vegetation indices (NDVI), night light intensity, road connectivity indices, flood/seismic risk zone data, and urbanization patterns.
+
+**How it contributes to prediction**: For agricultural loans, satellite-derived crop health indices can predict harvest yields before the harvest occurs. For real estate collateral, satellite imagery can verify property existence, assess neighborhood quality, and monitor construction progress. Night light intensity correlates with local economic activity.
+
+**Feature engineering possibilities**: NDVI-based crop health score, property location quality index, economic activity index (night light data), flood risk zone classification, and infrastructure quality index.
