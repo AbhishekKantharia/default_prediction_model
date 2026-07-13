@@ -690,3 +690,162 @@ The Indian agricultural calendar creates distinct seasonal patterns: kharif stre
 **How it contributes to prediction**: For agricultural loans, satellite-derived crop health indices can predict harvest yields before the harvest occurs. For real estate collateral, satellite imagery can verify property existence, assess neighborhood quality, and monitor construction progress. Night light intensity correlates with local economic activity.
 
 **Feature engineering possibilities**: NDVI-based crop health score, property location quality index, economic activity index (night light data), flood risk zone classification, and infrastructure quality index.
+---
+
+# 5. Feature Engineering
+
+## 5.1 Comprehensive Feature Catalog
+
+### Category 1: Behavioral Features (20 features)
+
+| # | Feature Name | Formula/Logic | Importance Rationale |
+|---|---|---|---|
+| 1 | repayment_consistency_score | Count of on-time payments / Total payments across all accounts (last 24 months) | Core behavioral measure of repayment discipline; high consistency strongly predicts continued good behavior |
+| 2 | emi_bounce_frequency | Number of EMI bounces in last 6 months / Total EMIs due in same period | Direct measure of cash flow stress; bounces are early default signals |
+| 3 | consecutive_bounce_count | Maximum consecutive EMI bounces across all accounts | Non-random bounces indicate structural cash flow problems |
+| 4 | payment_timing_variance | Standard deviation of (payment_date - due_date) across all payments | High variance indicates unpredictable cash flow patterns |
+| 5 | partial_payment_ratio | Total partial payments / Total EMI obligations (last 12 months) | Partial payments indicate maximum effort to meet obligations despite stress |
+| 6 | communication_responsiveness | (Calls answered + emails responded to) / (Total calls + emails from bank) | Borrower engagement is inversely correlated with default risk |
+| 7 | document_submission_timeliness | Average days between request and submission of required documents | Demonstrates borrower organizational capability and cooperation |
+| 8 | address_stability | Years at current address (from KYC data) | Residential stability correlates with financial stability |
+| 9 | employment_tenure | Years in current employment/business | Longer tenure indicates income stability |
+| 10 | account_tenure | Days since first account with the reporting bank | Longer relationships indicate loyalty and stability |
+| 11 | savings_discipline | Months with positive net savings in last 12 months / 12 | Regular saving behavior indicates financial management capability |
+| 12 | overdraft_utilization_pattern | Average of (daily_overdraft_balance / overdraft_limit) over last 90 days | Consistently high utilization indicates chronic cash flow shortfall |
+| 13 | cash_withdrawal_ratio | Total cash withdrawals / Total debits (last 6 months) | High cash withdrawal ratio may indicate informal economy activity |
+| 14 | spending_escalation_rate | Slope of monthly spending over last 6 months | Increasing spending without income increase signals risk |
+| 15 | income_regularity_index | 1 - (Coefficient of variation of monthly income credits) | Regular, predictable income is a cornerstone of repayment capacity |
+| 16 | guarantor_distress_flag | Binary: 1 if any guarantor/co-borrower has DPD > 30 in last 6 months | Guarantor distress may indicate shared financial stress |
+| 17 | loan_purpose_consistency | Cosine similarity between stated loan purpose and actual utilization pattern | Inconsistency may indicate misrepresentation |
+| 18 | banking_channel_usage_trend | Change in digital vs. branch transaction ratio over last 6 months | Shift to branch banking may indicate need for cash handling |
+| 19 | seasonal_repayment_pattern | Repayment performance in borrower's historically weakest month / best month | Identifies vulnerability to seasonal stress |
+| 20 | early_repayment_indicator | Binary: 1 if borrower has made any prepayments in last 12 months | Prepayment demonstrates excess cash flow and proactive financial management |
+
+### Category 2: Time-Series Features (15 features)
+
+| # | Feature Name | Formula/Logic | Importance Rationale |
+|---|---|---|---|
+| 21 | credit_score_3m_change | CIBIL_score(t) - CIBIL_score(t-3 months) | Score trajectory captures recent behavioral changes |
+| 22 | credit_score_6m_change | CIBIL_score(t) - CIBIL_score(t-6 months) | Medium-term trend provides stability signal |
+| 23 | credit_score_12m_change | CIBIL_score(t) - CIBIL_score(t-12 months) | Long-term trend captures structural shifts |
+| 24 | income_growth_rate_6m | (Avg_income_last_3m - Avg_income_prior_3m) / Avg_income_prior_3m | Income trajectory is a leading indicator of repayment capacity |
+| 25 | expense_growth_rate_6m | (Avg_expense_last_3m - Avg_expense_prior_3m) / Avg_expense_prior_3m | Rising expenses without income growth signals risk |
+| 26 | balance_trend_slope | Linear regression slope of average monthly balance over last 12 months | Negative slope indicates progressive cash flow deterioration |
+| 27 | utilization_trend_slope | Linear regression slope of credit utilization over last 6 months | Rising utilization trend is a strong early warning signal |
+| 28 | debt_acceleration | (Total_debt_now - Total_debt_6m_ago) - (Total_debt_6m_ago - Total_debt_12m_ago) | Accelerating debt accumulation is more dangerous than steady growth |
+| 29 | inquiry_velocity_change | (Inquiries_last_3m / 3) - (Inquiries_prior_3m / 3) | Increasing inquiry velocity signals urgent credit seeking |
+| 30 | emi_burden_trend | Total_monthly_EMI_now / Total_monthly_EMI_6m_ago | Rising EMI burden indicates increasing leverage |
+| 31 | interest_rate_sensitivity_delta | (EMI_at_current_rate - EMI_at_origination_rate) / EMI_at_origination_rate | Impact of rate changes on borrower's EMI burden |
+| 32 | revenue_volatility_12m | Coefficient of variation of monthly business revenue (last 12 months) | High revenue volatility increases default probability |
+| 33 | payment_amount_trend | Ratio of average payment amount now vs. 6 months ago | Declining payment amounts may indicate distress |
+| 34 | overdraft_cycle_length | Average consecutive days with overdraft utilization > 50% | Prolonged high utilization indicates structural cash flow issues |
+| 35 | account_dormancy_period | Days since last non-EMI transaction on primary account | Account dormancy may indicate account switching |
+
+### Category 3: Rolling Statistics (15 features)
+
+| # | Feature Name | Formula/Logic | Importance Rationale |
+|---|---|---|---|
+| 36 | balance_ma_3m | 3-month moving average of average monthly balance | Smoothed balance trend reduces noise |
+| 37 | balance_ma_6m | 6-month moving average of average monthly balance | Longer-term smoothed trend |
+| 38 | balance_ma_12m | 12-month moving average of average monthly balance | Structural balance level |
+| 39 | income_rolling_std_6m | 6-month rolling standard deviation of monthly income | Income volatility measure |
+| 40 | expense_rolling_std_6m | 6-month rolling standard deviation of monthly expenses | Expense volatility measure |
+| 41 | spending_rolling_avg_3m | 3-month rolling average of total monthly spending | Recent spending level |
+| 42 | credit_utilization_rolling_max_3m | Maximum credit utilization in any month in last 3 months | Peak recent stress level |
+| 43 | dpd_rolling_max_6m | Maximum DPD across all accounts in last 6 months | Worst recent repayment performance |
+| 44 | inquiry_count_rolling_3m | Count of credit inquiries in last 3 months | Recent credit-seeking intensity |
+| 45 | inquiry_count_rolling_6m | Count of credit inquiries in last 6 months | Medium-term credit-seeking pattern |
+| 46 | new_account_count_rolling_12m | Number of new accounts opened in last 12 months | New credit acquisition rate |
+| 47 | transaction_amount_rolling_std_3m | 3-month rolling standard deviation of total transaction amounts | Transaction volatility |
+| 48 | emi_bounce_rolling_rate_6m | Bounces in last 6 months / EMIs due in last 6 months | Recent bounce trajectory |
+| 49 | balance_min_rolling_3m | Minimum of monthly average balances in last 3 months | Worst recent balance level |
+| 50 | income_max_drawdown_12m | Maximum peak-to-trough decline in monthly income over 12 months | Largest income disruption in recent history |
+### Category 4: Credit Velocity Features (10 features)
+
+| # | Feature Name | Formula/Logic | Importance Rationale |
+|---|---|---|---|
+| 51 | credit_limit_velocity_6m | (Total_credit_limit_now - Total_credit_limit_6m_ago) / Total_credit_limit_6m_ago | Rapid credit limit expansion may indicate aggressive lending or borrower demand |
+| 52 | new_loan_velocity_6m | Number of new loans disbursed in last 6 months | Rapid loan acquisition is a distress signal |
+| 53 | debt_growth_velocity | (Total_outstanding_now - Total_outstanding_6m_ago) / 6 | Monthly rate of debt accumulation |
+| 54 | balance_drawdown_velocity | (Opening_balance_12m_ago - Current_balance) / Opening_balance_12m_ago | Rate at which borrower is drawing down savings |
+| 55 | credit_card_balance_velocity | Month-over-month change in total credit card balances for last 3 months | Accelerating credit card balances indicate cash flow stress |
+| 56 | emi_to_income_velocity | Change in DTI ratio over last 6 months | Rapidly increasing DTI is more alarming than high static DTI |
+| 57 | overdraft_utilization_velocity | Rate of change in average overdraft utilization over last 3 months | Accelerating overdraft utilization signals worsening cash flow |
+| 58 | inquiry_velocity_90d | Credit inquiries in last 90 days / 3 | Monthly rate of credit seeking |
+| 59 | account_opening_velocity | New accounts opened per quarter (last 4 quarters trend) | Accelerating new account openings may indicate loan stacking |
+| 60 | exposure_increase_rate | Total credit exposure increase in last 12 months / Total exposure 12 months ago | Annualized rate of exposure growth |
+
+### Category 5: Cash Flow Stability Features (10 features)
+
+| # | Feature Name | Formula/Logic | Importance Rationale |
+|---|---|---|---|
+| 61 | cash_flow_coverage_ratio | Average_monthly_credits / Average_monthly_EMI_obligations | Fundamental affordability metric |
+| 62 | net_cash_flow_trend | Linear regression slope of (credits - debits) over last 6 months | Positive trend indicates improving cash flow health |
+| 63 | cash_flow_volatility | Coefficient of variation of monthly net cash flow (last 12 months) | High volatility increases default risk even with positive average |
+| 64 | minimum_cash_flow_percentile | Percentile of current month's net cash flow in borrower's 24-month history | How current cash flow compares to borrower's own history |
+| 65 | cash_flow_deficit_frequency | Months with negative net cash flow in last 12 months / 12 | Frequency of cash flow shortfalls |
+| 66 | operating_cash_flow_ratio | Cash_from_operations / Total_debt_service_obligations (for businesses) | Core business ability to service debt |
+| 67 | working_capital_cycle_days | (Inventory_days + Receivable_days - Payable_days) | Length of cash conversion cycle |
+| 68 | cash_resilience_score | Months of EMI obligations that can be covered from current liquid savings | Emergency buffer assessment |
+| 69 | income_expense_gap_trend | Trend in (monthly_income - monthly_expenses) over last 6 months | Widening gap indicates increasing financial pressure |
+| 70 | seasonal_cash_flow_deviation | Current month's cash flow / Average for same month in prior 2 years | Deviation from seasonal norm may indicate non-seasonal stress |
+
+### Category 6: Debt Burden Features (10 features)
+
+| # | Feature Name | Formula/Logic | Importance Rationale |
+|---|---|---|---|
+| 71 | dti_ratio | Total_monthly_EMI_obligations / Total_monthly_income | Most fundamental affordability metric |
+| 72 | dti_after_new_loan | (Total_monthly_EMI + New_loan_EMI) / Total_monthly_income | Forward-looking affordability for new loan assessment |
+| 73 | fixed_obligation_to_income | (EMIs + Rent + Insurance_premiums) / Monthly_income | Comprehensive fixed obligation assessment |
+| 74 | debt_to_net_worth | Total_outstanding_debt / Total_net_worth | Leverage measure from balance sheet perspective |
+| 75 | interest_burden_ratio | Total_annual_interest_payments / Annual_income | Proportion of income consumed by interest |
+| 76 | unsecured_debt_ratio | Unsecured_debt / Total_debt | Higher unsecured debt proportion indicates higher risk |
+| 77 | max_single_ema_exposure | Largest_single_EMI / Monthly_income | Concentration of EMI burden in single obligation |
+| 78 | debt_service_coverage_ratio | Net_operating_income / Total_debt_service_obligations | Industry-standard coverage metric |
+| 79 | leverage_trend | Change in debt-to-equity ratio over last 12 months | Increasing leverage indicates growing risk |
+| 80 | near_prime_debt_share | High_interest_debt (> 15% interest) / Total_debt | Predatory lending exposure indicates distress |
+
+### Category 7: Income Volatility Features (10 features)
+
+| # | Feature Name | Formula/Logic | Importance Rationale |
+|---|---|---|---|
+| 81 | income_cv_12m | Coefficient of variation of monthly income (last 12 months) | Core income volatility metric |
+| 82 | income_stability_index | 1 - (Std_dev_income / Mean_income) for last 12 months | Inverse volatility measure (higher = more stable) |
+| 83 | income_zero_months | Months with zero or near-zero income credits in last 12 months | Complete income cessation months |
+| 84 | income_source_count | Number of distinct income credit sources identified from bank statements | Diversification of income sources |
+| 85 | salary_credit_regularity | Standard deviation of (salary_credit_date - first_of_month) for last 6 months | Regular salary credit timing indicates stable employment |
+| 86 | income_trend_slope | Linear regression slope of monthly income over last 12 months | Directional trend in income |
+| 87 | income_peak_to_trough | (Max_monthly_income - Min_monthly_income) / Average_monthly_income over last 12 months | Range of income fluctuation |
+| 88 | income_recovery_speed | Months to recover to pre-decline income level after a decline event | How quickly income recovers from disruptions |
+| 89 | self_employment_income_volatility | CV of monthly business income for self-employed borrowers | Business income volatility is typically higher than salary |
+| 90 | income_seasonality_index | Ratio of income in borrower's weakest quarter to strongest quarter | Degree of seasonal income variation |
+
+### Category 8: Spending Behavior Features (10 features)
+
+| # | Feature Name | Formula/Logic | Importance Rationale |
+|---|---|---|---|
+| 91 | essential_spending_ratio | Spending on essentials (food, utilities, rent) / Total spending | Higher ratio indicates constrained discretionary spending |
+| 92 | discretionary_cutback_flag | Binary: 1 if discretionary spending dropped > 30% in last 3 months | Cutbacks may indicate financial stress adaptation |
+| 93 | lifestyle_inflation_rate | Growth rate of total spending vs. growth rate of income over last 12 months | Spending growing faster than income is unsustainable |
+| 94 | digital_payment_adoption | Digital_transaction_count / Total_transaction_count | Higher digital adoption enables better tracking |
+| 95 | gambling_or_risk_spending_flag | Binary: 1 if transactions with gambling/betting/lottery merchants detected | High-risk spending behavior increases default probability |
+| 96 | travel_luxury_spend_ratio | Spending on travel/luxury/discretionary categories / Total spending | High ratio may indicate overextension |
+| 97 | education_spending_consistency | Regularity of education-related payments | Consistent education spending indicates family stability |
+| 98 | medical_expense_spike | Binary: 1 if medical expenses exceeded 3x monthly average in last 6 months | Medical emergencies are a major default trigger |
+| 99 | emi_payment_timing_vs_salary | Days between salary credit and EMI auto-debit | Short gap indicates tight cash flow management |
+| 100 | spending_entropy | Shannon entropy of spending across categories over last 6 months | Low entropy (concentrated spending) may indicate limited flexibility |
+
+### Category 9: Business Health Features (10 features)
+
+| # | Feature Name | Formula/Logic | Importance Rationale |
+|---|---|---|---|
+| 101 | gst_revenue_growth_yoy | (Current_year_GST_revenue - Prior_year_GST_revenue) / Prior_year_GST_revenue | Verified revenue growth from government data |
+| 102 | gst_filing_regularity | Months_with_timely_filing / Total_months_in_period | Compliance behavior indicates business management quality |
+| 103 | buyer_diversification_index | Herfindahl index of revenue by buyer (from GST data) | Customer concentration risk measure |
+| 104 | itc_utilization_ratio | Input_tax_credit_claimed / Output_tax_liability | Low ratio may indicate business slowdown |
+| 105 | business_revenue_bank_alignment | Correlation between GST_reported_revenue and bank_statement_credits | Inconsistency may indicate fraud or business complexity |
+| 106 | business_turnover_trend | Slope of monthly bank statement turnover over 12 months | Business trajectory indicator |
+| 107 | accounts_receivable_aging | Weighted average days to collect from customers | Longer collection times strain cash flow |
+| 108 | profit_margin_trend | Trend in gross margin over last 4 quarters | Declining margins indicate competitive pressure |
+| 109 | employee_count_trend | Change in EPFO subscriber count (for businesses with EPFO data) | Workforce changes indicate business trajectory |
+| 110 | business_registration_age | Days since business GST/MSME registration | Established businesses have lower default rates |
