@@ -3,430 +3,426 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Default Prediction Model — CGI Experience</title>
+<title>Default Predict — RPG Risk Battle</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&family=Exo+2:wght@100;300;400;700;900&display=swap');
-
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&family=Exo+2:wght@100;300;400;700;900&family=Press+Start+2P&display=swap');
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
   --cyan:#00f0ff;--magenta:#ff00e5;--gold:#ffd700;--green:#00ff88;
-  --red:#ff3366;--blue:#4d7cff;--purple:#a855f7;
-  --bg:#030014;--card:rgba(10,10,40,0.6);
+  --red:#ff3366;--blue:#4d7cff;--purple:#a855f7;--orange:#ff8c00;
+  --hp-green:#00ff88;--hp-yellow:#ffd700;--hp-red:#ff3366;
+  --bg:#05001a;--card:rgba(10,10,40,0.7);--glass:rgba(255,255,255,0.03);
 }
 html{scroll-behavior:smooth}
-body{
-  font-family:'Rajdhani',sans-serif;background:var(--bg);color:#e0e0ff;
-  overflow-x:hidden;perspective:1px;
-}
+body{font-family:'Rajdhani',sans-serif;background:var(--bg);color:#e0e0ff;overflow-x:hidden;min-height:100vh}
 
-/* ═══════ CANVAS BACKGROUNDS ═══════ */
-#particleCanvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none}
-#gridCanvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:0.3}
-#nebulaCanvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:0.4}
+/* ═══════ AUDIO TOGGLE ═══════ */
+.audio-toggle{position:fixed;bottom:24px;right:24px;z-index:9000;width:48px;height:48px;
+  border-radius:50%;border:1px solid rgba(0,240,255,0.2);background:rgba(10,10,40,0.9);
+  backdrop-filter:blur(10px);cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-size:1.2rem;transition:all .3s}
+.audio-toggle:hover{border-color:var(--cyan);box-shadow:0 0 20px rgba(0,240,255,0.2)}
+.audio-toggle.muted{opacity:0.4}
+
+/* ═══════ XP BAR (TOP) ═══════ */
+.xp-bar-container{position:fixed;top:0;left:0;width:100%;height:6px;z-index:10000;
+  background:rgba(0,0,0,0.5)}
+.xp-bar-fill{height:100%;background:linear-gradient(90deg,var(--cyan),var(--magenta),var(--gold));
+  background-size:300% 100%;animation:xpShimmer 3s linear infinite;
+  transition:width .8s cubic-bezier(.23,1,.32,1);box-shadow:0 0 12px var(--cyan)}
+@keyframes xpShimmer{0%{background-position:0% 0%}100%{background-position:300% 0%}}
+
+/* ═══════ HUD ═══════ */
+.hud{position:fixed;top:12px;right:16px;z-index:9999;display:flex;gap:12px;align-items:center}
+.hud-item{display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;
+  background:rgba(10,10,40,0.9);border:1px solid rgba(0,240,255,0.15);
+  backdrop-filter:blur(10px);font-family:'Orbitron',monospace;font-size:0.65rem;
+  color:var(--cyan);letter-spacing:1px;white-space:nowrap}
+.hud-item .icon{font-size:0.9rem}
+.hud-item .val{font-weight:700;color:#fff}
+.hud-item.xp .val{color:var(--gold)}
+.hud-item.streak .val{color:var(--orange)}
+.hud-item.pts .val{color:var(--magenta)}
+.level-badge{padding:4px 10px;border-radius:8px;background:linear-gradient(135deg,var(--cyan),var(--magenta));
+  font-family:'Press Start 2P',monospace;font-size:0.5rem;color:#fff;font-weight:900}
+
+/* ═══════ ACHIEVEMENT POPUP ═══════ */
+.achievement-popup{position:fixed;top:80px;right:20px;z-index:10001;
+  padding:16px 24px;border-radius:12px;
+  background:linear-gradient(135deg,rgba(255,215,0,0.15),rgba(255,0,229,0.1));
+  border:1px solid var(--gold);backdrop-filter:blur(20px);
+  transform:translateX(120%);transition:transform .5s cubic-bezier(.23,1,.32,1);
+  box-shadow:0 0 40px rgba(255,215,0,0.2);max-width:320px}
+.achievement-popup.show{transform:translateX(0)}
+.achievement-popup .ach-label{font-family:'Press Start 2P',monospace;font-size:0.5rem;
+  color:var(--gold);letter-spacing:2px;margin-bottom:6px}
+.achievement-popup .ach-title{font-family:'Orbitron',monospace;font-size:0.9rem;
+  color:#fff;font-weight:700;margin-bottom:4px}
+.achievement-popup .ach-desc{font-size:0.8rem;color:rgba(224,224,255,0.5)}
+.achievement-popup .ach-xp{font-family:'Orbitron',monospace;font-size:0.7rem;
+  color:var(--gold);margin-top:6px}
+
+/* ═══════ CANVAS ═══════ */
+#bgCanvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none}
 .content{position:relative;z-index:10}
 
 /* ═══════ PRELOADER ═══════ */
-.preloader{position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:99999;display:flex;align-items:center;justify-content:center;flex-direction:column;transition:opacity .8s,visibility .8s}
-.preloader.hidden{opacity:0;visibility:hidden}
-.loader-ring{width:120px;height:120px;border-radius:50%;border:3px solid transparent;border-top-color:var(--cyan);border-right-color:var(--magenta);animation:spin 1.2s linear infinite;position:relative}
-.loader-ring::before{content:'';position:absolute;inset:8px;border-radius:50%;border:3px solid transparent;border-bottom-color:var(--gold);border-left-color:var(--green);animation:spin 0.8s linear infinite reverse}
-.loader-ring::after{content:'';position:absolute;inset:20px;border-radius:50%;border:2px solid transparent;border-top-color:var(--purple);animation:spin 1.5s linear infinite}
-.loader-text{font-family:'Orbitron',monospace;color:var(--cyan);margin-top:30px;font-size:0.9rem;letter-spacing:4px;animation:glow 1.5s ease-in-out infinite alternate}
-@keyframes spin{to{transform:rotate(360deg)}}
-@keyframes glow{from{text-shadow:0 0 10px var(--cyan)}to{text-shadow:0 0 30px var(--cyan),0 0 60px var(--cyan)}}
+.preloader{position:fixed;inset:0;background:var(--bg);z-index:99999;
+  display:flex;align-items:center;justify-content:center;flex-direction:column;
+  transition:opacity 1s,visibility 1s}
+.preloader.hidden{opacity:0;visibility:hidden;pointer-events:none}
+.preloader .title{font-family:'Press Start 2P',monospace;font-size:1.2rem;
+  color:var(--cyan);margin-bottom:30px;animation:glitch 2s infinite}
+@keyframes glitch{0%,90%,100%{transform:none}92%{transform:translate(-2px,1px)}94%{transform:translate(2px,-1px)}96%{transform:translate(-1px,2px)}98%{transform:translate(1px,-2px)}}
+.loading-bar{width:300px;height:12px;border:2px solid rgba(0,240,255,0.3);border-radius:6px;overflow:hidden;position:relative}
+.loading-fill{height:100%;width:0;background:linear-gradient(90deg,var(--cyan),var(--magenta));
+  transition:width .3s;border-radius:4px;position:relative}
+.loading-fill::after{content:'';position:absolute;inset:0;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.4),transparent);
+  animation:loadShimmer 1s infinite}
+@keyframes loadShimmer{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+.loading-text{font-family:'Rajdhani',sans-serif;color:var(--muted);margin-top:16px;font-size:0.85rem;letter-spacing:2px}
+.loading-pct{font-family:'Orbitron',monospace;color:var(--cyan);font-size:0.8rem;margin-top:8px}
+.muted{color:rgba(224,224,255,0.4)}
 
 /* ═══════ NAV ═══════ */
-nav{position:fixed;top:0;width:100%;z-index:1000;padding:16px 0;
-  background:linear-gradient(180deg,rgba(3,0,20,0.95),transparent);
-  backdrop-filter:blur(20px);border-bottom:1px solid rgba(0,240,255,0.08)}
+nav{position:fixed;top:6px;width:100%;z-index:1000;padding:14px 0;
+  background:linear-gradient(180deg,rgba(5,0,26,0.95),transparent);
+  backdrop-filter:blur(16px)}
 .nav-inner{max-width:1200px;margin:0 auto;padding:0 24px;display:flex;justify-content:space-between;align-items:center}
-.nav-brand{font-family:'Orbitron',monospace;font-weight:900;font-size:1.2rem;
+.nav-brand{font-family:'Press Start 2P',monospace;font-size:0.7rem;
   background:linear-gradient(90deg,var(--cyan),var(--magenta));
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-  text-shadow:0 0 20px rgba(0,240,255,0.3)}
-.nav-links{display:flex;gap:32px}
-.nav-links a{color:rgba(224,224,255,0.5);font-family:'Exo 2',sans-serif;font-weight:500;
-  font-size:0.85rem;text-transform:uppercase;letter-spacing:2px;text-decoration:none;
-  transition:all .3s;position:relative}
-.nav-links a::after{content:'';position:absolute;bottom:-4px;left:0;width:0;height:2px;
-  background:linear-gradient(90deg,var(--cyan),var(--magenta));transition:width .3s}
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.nav-links{display:flex;gap:28px}
+.nav-links a{color:rgba(224,224,255,0.4);font-family:'Exo 2',sans-serif;font-size:0.8rem;
+  text-transform:uppercase;letter-spacing:2px;text-decoration:none;transition:all .3s;
+  position:relative}
 .nav-links a:hover{color:var(--cyan)}
-.nav-links a:hover::after{width:100%}
 
 /* ═══════ HERO ═══════ */
 .hero{min-height:100vh;display:flex;align-items:center;justify-content:center;
-  position:relative;overflow:hidden;transform-style:preserve-3d}
-.hero-content{text-align:center;position:relative;z-index:5;transform:translateZ(0)}
-.hero-badge{display:inline-flex;align-items:center;gap:8px;padding:8px 24px;
-  border:1px solid rgba(0,240,255,0.3);border-radius:50px;
-  background:rgba(0,240,255,0.05);backdrop-filter:blur(10px);
-  font-family:'Exo 2',sans-serif;font-size:0.8rem;letter-spacing:3px;
-  text-transform:uppercase;color:var(--cyan);margin-bottom:40px;
-  animation:float 3s ease-in-out infinite}
-.hero-badge .dot{width:8px;height:8px;border-radius:50%;background:var(--green);
-  animation:pulse-dot 2s ease-in-out infinite}
-@keyframes pulse-dot{0%,100%{opacity:1;box-shadow:0 0 10px var(--green)}50%{opacity:0.4;box-shadow:none}}
-
-.hero h1{font-family:'Orbitron',monospace;font-size:4.5rem;font-weight:900;
-  line-height:1.1;margin-bottom:30px;
-  background:linear-gradient(135deg,#fff 0%,var(--cyan) 40%,var(--magenta) 70%,var(--gold) 100%);
+  text-align:center;position:relative;padding:100px 20px}
+.hero-content{position:relative;z-index:5}
+.hero-title{font-family:'Press Start 2P',monospace;font-size:2rem;
+  color:var(--cyan);margin-bottom:12px;line-height:1.6;
+  text-shadow:0 0 30px rgba(0,240,255,0.5);animation:heroIn 1.5s ease-out}
+.hero-subtitle{font-family:'Orbitron',monospace;font-size:1.8rem;font-weight:900;
+  margin-bottom:30px;
+  background:linear-gradient(90deg,#fff,var(--magenta),var(--gold));
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-  filter:drop-shadow(0 0 40px rgba(0,240,255,0.3));
-  animation:heroTitle 2s ease-out}
-@keyframes heroTitle{from{opacity:0;transform:translateY(60px) scale(0.9);filter:blur(10px)}to{opacity:1;transform:none;filter:drop-shadow(0 0 40px rgba(0,240,255,0.3))}}
+  filter:drop-shadow(0 0 20px rgba(255,0,229,0.3))}
+.hero-desc{font-size:1.15rem;color:rgba(224,224,255,0.5);max-width:650px;margin:0 auto 40px;
+  font-family:'Exo 2',sans-serif;font-weight:300}
+@keyframes heroIn{from{opacity:0;transform:translateY(40px) scale(0.95)}to{opacity:1;transform:none}}
 
-.hero h1 .line2{display:block;font-size:2.8rem;
-  background:linear-gradient(90deg,var(--cyan),var(--magenta));
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.hero p{font-size:1.2rem;color:rgba(224,224,255,0.6);max-width:650px;margin:0 auto 50px;
-  font-family:'Exo 2',sans-serif;font-weight:300;letter-spacing:0.5px;
-  animation:fadeUp 1.5s ease-out 0.5s both}
-@keyframes fadeUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:none}}
+.hero-quest{display:inline-flex;align-items:center;gap:12px;padding:12px 28px;
+  border-radius:12px;background:rgba(0,240,255,0.05);border:1px solid rgba(0,240,255,0.2);
+  margin-bottom:40px;animation:float 3s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.hero-quest .quest-icon{font-size:1.5rem}
+.hero-quest .quest-text{font-family:'Press Start 2P',monospace;font-size:0.55rem;
+  color:var(--cyan);letter-spacing:1px}
 
-.hero-stats{display:flex;justify-content:center;gap:60px;margin-bottom:50px;
-  animation:fadeUp 1.5s ease-out 0.8s both}
-.hero-stat{text-align:center}
-.hero-stat .val{font-family:'Orbitron',monospace;font-size:2.5rem;font-weight:900;
-  background:linear-gradient(180deg,var(--cyan),var(--blue));
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.hero-stat .lbl{font-size:0.75rem;color:rgba(224,224,255,0.4);text-transform:uppercase;
-  letter-spacing:2px;margin-top:4px}
+.hero-buttons{display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
+.btn{padding:14px 36px;border-radius:12px;font-family:'Orbitron',monospace;font-weight:700;
+  font-size:0.8rem;text-transform:uppercase;letter-spacing:2px;text-decoration:none;
+  transition:all .4s;cursor:pointer;position:relative;overflow:hidden}
+.btn-primary{background:linear-gradient(135deg,var(--cyan),var(--blue));color:#000;border:none;
+  box-shadow:0 0 30px rgba(0,240,255,0.2)}
+.btn-primary:hover{transform:translateY(-3px);box-shadow:0 0 50px rgba(0,240,255,0.4)}
+.btn-secondary{background:transparent;color:var(--gold);border:1px solid rgba(255,215,0,0.3)}
+.btn-secondary:hover{background:rgba(255,215,0,0.1);border-color:var(--gold)}
+.btn-danger{background:transparent;color:var(--red);border:1px solid rgba(255,51,102,0.3)}
+.btn-danger:hover{background:rgba(255,51,102,0.1);border-color:var(--red)}
 
-.hero-cta{display:inline-flex;gap:20px;animation:fadeUp 1.5s ease-out 1s both}
-.btn{padding:16px 40px;border-radius:12px;font-family:'Orbitron',monospace;font-weight:700;
-  font-size:0.85rem;text-transform:uppercase;letter-spacing:2px;text-decoration:none;
-  transition:all .4s;position:relative;overflow:hidden;cursor:pointer}
-.btn::before{content:'';position:absolute;inset:0;background:linear-gradient(45deg,var(--cyan),var(--magenta));
-  opacity:0;transition:opacity .4s;z-index:-1}
-.btn-primary{background:linear-gradient(135deg,var(--cyan),var(--blue));color:#000;
-  border:none;box-shadow:0 0 30px rgba(0,240,255,0.3)}
-.btn-primary:hover{transform:translateY(-3px) scale(1.02);box-shadow:0 0 50px rgba(0,240,255,0.5)}
-.btn-outline{background:transparent;color:var(--cyan);
-  border:1px solid rgba(0,240,255,0.3)}
-.btn-outline:hover{background:rgba(0,240,255,0.1);border-color:var(--cyan);transform:translateY(-3px)}
-
-/* ═══════ FLOATING 3D ELEMENTS ═══════ */
-.floating-shapes{position:absolute;inset:0;pointer-events:none;perspective:1000px}
-.shape{position:absolute;border:1px solid;border-radius:4px;
-  animation:floatShape 20s linear infinite;opacity:0.15}
-.shape-1{width:80px;height:80px;top:15%;left:10%;border-color:var(--cyan);animation-duration:25s}
-.shape-2{width:60px;height:60px;top:70%;right:15%;border-color:var(--magenta);animation-duration:18s;animation-delay:-5s}
-.shape-3{width:100px;height:100px;top:20%;right:20%;border-color:var(--gold);animation-duration:30s;animation-delay:-10s;border-radius:50%}
-.shape-4{width:50px;height:50px;bottom:20%;left:25%;border-color:var(--green);animation-duration:22s;animation-delay:-3s}
-.shape-5{width:70px;height:70px;top:50%;left:5%;border-color:var(--purple);animation-duration:28s;animation-delay:-8s;border-radius:50%}
-@keyframes floatShape{
-  0%{transform:rotateX(0) rotateY(0) rotateZ(0) translateZ(0)}
-  25%{transform:rotateX(90deg) rotateY(45deg) rotateZ(90deg) translateZ(100px)}
-  50%{transform:rotateX(180deg) rotateY(90deg) rotateZ(180deg) translateZ(0)}
-  75%{transform:rotateX(270deg) rotateY(135deg) rotateZ(270deg) translateZ(-100px)}
-  100%{transform:rotateX(360deg) rotateY(180deg) rotateZ(360deg) translateZ(0)}
-}
-
-/* ═══════ SECTION COMMON ═══════ */
-section{padding:120px 0;position:relative}
-.sec-header{text-align:center;margin-bottom:80px}
-.sec-label{font-family:'Orbitron',monospace;font-size:0.7rem;letter-spacing:6px;
-  text-transform:uppercase;color:var(--cyan);margin-bottom:16px;
-  text-shadow:0 0 20px rgba(0,240,255,0.5)}
-.sec-title{font-family:'Orbitron',monospace;font-size:2.8rem;font-weight:900;
-  margin-bottom:16px;
+/* ═══════ SECTIONS ═══════ */
+section{padding:100px 0;position:relative}
+.sec-header{text-align:center;margin-bottom:60px}
+.sec-label{font-family:'Press Start 2P',monospace;font-size:0.5rem;letter-spacing:4px;
+  color:var(--gold);margin-bottom:14px;text-shadow:0 0 15px rgba(255,215,0,0.3)}
+.sec-title{font-family:'Orbitron',monospace;font-size:2.4rem;font-weight:900;
+  margin-bottom:12px;
   background:linear-gradient(90deg,#fff,var(--cyan));
   -webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.sec-sub{font-size:1.1rem;color:rgba(224,224,255,0.5);max-width:600px;margin:0 auto;
-  font-family:'Exo 2',sans-serif;font-weight:300}
-
-/* ═══════ PROBLEM SECTION — HOLOGRAPHIC ═══════ */
-.problem-section{background:linear-gradient(180deg,transparent,rgba(0,240,255,0.02),transparent)}
-.problem-grid{display:grid;grid-template-columns:1fr 80px 1fr;gap:0;align-items:center;
-  max-width:1000px;margin:0 auto}
-.problem-box{padding:40px;border-radius:20px;position:relative;overflow:hidden;
-  transform-style:preserve-3d;transition:transform .5s}
-.problem-box::before{content:'';position:absolute;inset:0;border-radius:20px;
-  padding:1px;background:linear-gradient(135deg,var(--cyan),var(--magenta));
-  -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
-  -webkit-mask-composite:xor;mask-composite:exclude;opacity:0.3}
-.problem-box.current{background:rgba(255,51,102,0.03)}
-.problem-box.current::before{background:linear-gradient(135deg,var(--red),#ff6633);opacity:0.4}
-.problem-box.expected{background:rgba(0,255,136,0.03)}
-.problem-box.expected::before{background:linear-gradient(135deg,var(--green),var(--cyan));opacity:0.4}
-.problem-box:hover{transform:translateZ(20px) scale(1.02)}
-.problem-box h3{font-family:'Orbitron',monospace;font-size:1.1rem;margin-bottom:24px;
-  letter-spacing:2px;text-transform:uppercase}
-.problem-box.current h3{color:var(--red)}
-.problem-box.expected h3{color:var(--green)}
-.problem-box li{list-style:none;padding:10px 0 10px 28px;position:relative;
-  font-size:0.95rem;color:rgba(224,224,255,0.6)}
-.problem-box li::before{content:'';position:absolute;left:0;top:18px;width:8px;height:8px;
-  border-radius:50%}
-.problem-box.current li::before{background:var(--red);box-shadow:0 0 12px var(--red)}
-.problem-box.expected li::before{background:var(--green);box-shadow:0 0 12px var(--green)}
-.vs-badge{width:60px;height:60px;border-radius:50%;
-  background:linear-gradient(135deg,var(--cyan),var(--magenta));
-  display:flex;align-items:center;justify-content:center;
-  font-family:'Orbitron',monospace;font-weight:900;font-size:0.9rem;color:#000;
-  box-shadow:0 0 40px rgba(0,240,255,0.3);animation:pulse-glow 3s ease-in-out infinite;
-  position:relative;z-index:2}
-@keyframes pulse-glow{0%,100%{box-shadow:0 0 40px rgba(0,240,255,0.3)}50%{box-shadow:0 0 80px rgba(0,240,255,0.6),0 0 120px rgba(255,0,229,0.3)}}
-
-/* ═══════ ARCHITECTURE — 3D CARDS ═══════ */
-.arch-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:28px;
-  perspective:1200px;max-width:1100px;margin:0 auto}
-.arch-card{background:var(--card);border:1px solid rgba(0,240,255,0.08);
-  border-radius:20px;padding:36px;position:relative;overflow:hidden;
-  transform-style:preserve-3d;transition:all .5s cubic-bezier(.23,1,.32,1);
-  backdrop-filter:blur(20px)}
-.arch-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;
-  background:linear-gradient(90deg,transparent,var(--cyan),var(--magenta),transparent);opacity:0}
-.arch-card::after{content:'';position:absolute;inset:0;
-  background:radial-gradient(circle at var(--mx,50%) var(--my,50%),rgba(0,240,255,0.06),transparent 60%);
-  opacity:0;transition:opacity .3s;pointer-events:none}
-.arch-card:hover::before{opacity:1}
-.arch-card:hover::after{opacity:1}
-.arch-card:hover{transform:translateY(-8px) rotateX(2deg) rotateY(-2deg);
-  border-color:rgba(0,240,255,0.2);box-shadow:0 20px 60px rgba(0,0,0,0.4),0 0 40px rgba(0,240,255,0.1)}
-.arch-icon{width:64px;height:64px;border-radius:16px;display:flex;align-items:center;
-  justify-content:center;font-size:1.8rem;margin-bottom:20px;position:relative}
-.arch-icon::after{content:'';position:absolute;inset:-2px;border-radius:18px;
-  background:linear-gradient(135deg,var(--cyan),var(--magenta));opacity:0.15;z-index:-1;
-  transition:opacity .3s}
-.arch-card:hover .arch-icon::after{opacity:0.4}
-.arch-card h3{font-family:'Orbitron',monospace;font-size:1rem;margin-bottom:12px;
-  letter-spacing:1px;color:#fff}
-.arch-card p{font-size:0.9rem;color:rgba(224,224,255,0.5);line-height:1.6}
-.tag-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:16px}
-.tag{font-size:0.7rem;padding:4px 12px;border-radius:20px;
-  background:rgba(0,240,255,0.06);color:var(--cyan);
-  border:1px solid rgba(0,240,255,0.15);font-family:'Exo 2',sans-serif}
-
-/* ═══════ PIPELINE — ANIMATED FLOW ═══════ */
-.pipeline-section{overflow:hidden}
-.pipeline-track{display:flex;gap:0;align-items:center;justify-content:center;
-  padding:40px 0;position:relative;max-width:1100px;margin:0 auto}
-.pipeline-track::before{content:'';position:absolute;top:50%;left:0;right:0;height:2px;
-  background:linear-gradient(90deg,transparent,var(--cyan),var(--magenta),var(--gold),transparent);
-  transform:translateY(-50%);opacity:0.2}
-.pipeline-step{background:var(--card);border:1px solid rgba(0,240,255,0.1);
-  border-radius:16px;padding:20px 24px;text-align:center;min-width:120px;
-  position:relative;backdrop-filter:blur(10px);transition:all .4s;cursor:default}
-.pipeline-step:hover{transform:translateY(-6px) scale(1.05);
-  border-color:var(--cyan);box-shadow:0 0 30px rgba(0,240,255,0.15)}
-.pipeline-step .num{font-family:'Orbitron',monospace;font-size:0.6rem;
-  color:var(--cyan);letter-spacing:2px;text-transform:uppercase}
-.pipeline-step h4{font-family:'Orbitron',monospace;font-size:0.85rem;color:#fff;margin-top:4px}
-.pipeline-arrow{font-size:1.5rem;color:var(--magenta);padding:0 6px;
-  animation:arrowPulse 2s ease-in-out infinite;text-shadow:0 0 10px var(--magenta)}
-@keyframes arrowPulse{0%,100%{opacity:0.3;transform:scale(1)}50%{opacity:1;transform:scale(1.3)}}
-
-/* ═══════ CODE SECTION ═══════ */
-.code-section{background:rgba(0,0,0,0.3);border-top:1px solid rgba(0,240,255,0.05);
-  border-bottom:1px solid rgba(0,240,255,0.05)}
-.code-window{background:#0a0a1a;border:1px solid rgba(0,240,255,0.1);border-radius:16px;
-  max-width:750px;margin:0 auto;overflow:hidden;box-shadow:0 20px 80px rgba(0,0,0,0.5)}
-.code-titlebar{display:flex;align-items:center;gap:8px;padding:14px 20px;
-  background:rgba(255,255,255,0.03);border-bottom:1px solid rgba(0,240,255,0.05)}
-.code-dot{width:12px;height:12px;border-radius:50%}
-.code-dot.r{background:#ff5f57}.code-dot.y{background:#ffbd2e}.code-dot.g{background:#28c840}
-.code-title{flex:1;text-align:center;font-family:'Orbitron',monospace;font-size:0.7rem;
-  color:rgba(224,224,255,0.3);letter-spacing:2px}
-.code-body{padding:24px;font-family:'Fira Code','Consolas',monospace;font-size:0.82rem;
-  line-height:2;color:#8892b0;overflow-x:auto;max-height:500px;overflow-y:auto}
-.code-body .d{color:#ff7b72}.code-body .f{color:#79c0ff}.code-body .c{color:#6e7681;font-style:italic}
-.code-body .s{color:#a5d6ff}.code-body .k{color:#d2a8ff}.code-body .n{color:#7ee787}
-
-/* ═══════ MODELS — ORBITING ═══════ */
-.models-showcase{position:relative;padding:80px 0}
-.orbit-container{width:400px;height:400px;position:relative;margin:0 auto;
-  perspective:800px}
-.orbit-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-  width:100px;height:100px;border-radius:50%;
-  background:linear-gradient(135deg,var(--cyan),var(--magenta));
-  display:flex;align-items:center;justify-content:center;
-  font-family:'Orbitron',monospace;font-weight:900;font-size:0.7rem;color:#000;
-  box-shadow:0 0 60px rgba(0,240,255,0.4);z-index:10}
-.orbit-ring{position:absolute;inset:0;border:1px solid rgba(0,240,255,0.1);border-radius:50%;
-  animation:orbitSpin 30s linear infinite}
-.orbit-ring:nth-child(2){inset:30px;animation-duration:25s;animation-direction:reverse;
-  border-color:rgba(255,0,229,0.1)}
-.orbit-item{position:absolute;top:-14px;left:50%;transform:translateX(-50%);
-  width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;
-  font-size:0.7rem;background:var(--card);border:1px solid rgba(0,240,255,0.3);
-  box-shadow:0 0 20px rgba(0,240,255,0.2)}
-@keyframes orbitSpin{to{transform:rotate(360deg)}}
-
-.model-cards-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));
-  gap:16px;margin-top:60px;max-width:1000px;margin-left:auto;margin-right:auto}
-.model-pill{text-align:center;padding:24px 16px;border-radius:16px;
-  background:var(--card);border:1px solid rgba(0,240,255,0.06);
-  transition:all .4s;position:relative;overflow:hidden}
-.model-pill::before{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
-  background:linear-gradient(90deg,var(--cyan),var(--magenta));transform:scaleX(0);
-  transition:transform .4s}
-.model-pill:hover{transform:translateY(-6px);border-color:rgba(0,240,255,0.2);
-  box-shadow:0 10px 40px rgba(0,0,0,0.3)}
-.model-pill:hover::before{transform:scaleX(1)}
-.model-pill h4{font-family:'Orbitron',monospace;font-size:0.8rem;color:#fff;margin-bottom:6px}
-.model-pill p{font-size:0.75rem;color:rgba(224,224,255,0.4)}
-
-/* ═══════ LOAN TYPES — HOLOGRAM ═══════ */
-.loan-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
-  gap:16px;max-width:900px;margin:0 auto}
-.loan-card{padding:24px;border-radius:14px;text-align:center;position:relative;
-  background:linear-gradient(135deg,rgba(0,240,255,0.03),rgba(255,0,229,0.03));
-  border:1px solid rgba(0,240,255,0.08);transition:all .4s;overflow:hidden}
-.loan-card::before{content:'';position:absolute;inset:0;
-  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,240,255,0.02) 2px,rgba(0,240,255,0.02) 4px);
-  opacity:0;transition:opacity .4s}
-.loan-card:hover::before{opacity:1}
-.loan-card:hover{border-color:var(--cyan);transform:translateY(-4px);
-  box-shadow:0 0 30px rgba(0,240,255,0.1)}
-.loan-card h4{font-family:'Orbitron',monospace;font-size:0.8rem;color:var(--cyan)}
-
-/* ═══════ STATS — 3D COUNTERS ═══════ */
-.stats-section{background:linear-gradient(180deg,transparent,rgba(0,240,255,0.02),transparent)}
-.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:24px;max-width:1000px;margin:0 auto}
-.stat-card{text-align:center;padding:40px 20px;border-radius:20px;
-  background:var(--card);border:1px solid rgba(0,240,255,0.06);
-  transform-style:preserve-3d;transition:all .5s;position:relative;overflow:hidden}
-.stat-card::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;
-  background:conic-gradient(from 0deg,transparent,rgba(0,240,255,0.05),transparent,rgba(255,0,229,0.05),transparent);
-  animation:rotateBg 8s linear infinite;opacity:0;transition:opacity .4s}
-.stat-card:hover::before{opacity:1}
-.stat-card:hover{transform:translateY(-8px);border-color:rgba(0,240,255,0.15);
-  box-shadow:0 20px 60px rgba(0,0,0,0.3)}
-@keyframes rotateBg{to{transform:rotate(360deg)}}
-.stat-value{font-family:'Orbitron',monospace;font-size:2.8rem;font-weight:900;
-  background:linear-gradient(135deg,var(--cyan),var(--magenta));
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-  position:relative;z-index:1}
-.stat-label{font-size:0.85rem;color:rgba(224,224,255,0.4);margin-top:8px;
-  text-transform:uppercase;letter-spacing:2px;position:relative;z-index:1}
-.stat-delta{font-size:0.75rem;color:var(--green);margin-top:6px;position:relative;z-index:1;
+.sec-sub{font-size:1rem;color:rgba(224,224,255,0.4);max-width:600px;margin:0 auto;
   font-family:'Exo 2',sans-serif}
 
-/* ═══════ DEMO — FULL CGI ═══════ */
-.demo-wrapper{background:linear-gradient(135deg,rgba(0,240,255,0.03),rgba(255,0,229,0.03));
-  border:1px solid rgba(0,240,255,0.1);border-radius:24px;padding:48px;
-  max-width:900px;margin:0 auto;position:relative;overflow:hidden;
-  backdrop-filter:blur(20px)}
-.demo-wrapper::before{content:'';position:absolute;inset:0;
-  background:repeating-linear-gradient(90deg,transparent,transparent 100px,rgba(0,240,255,0.015) 100px,rgba(0,240,255,0.015) 101px),
-  repeating-linear-gradient(0deg,transparent,transparent 100px,rgba(0,240,255,0.015) 100px,rgba(0,240,255,0.015) 101px);
-  pointer-events:none}
-.demo-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
-.form-group{display:flex;flex-direction:column}
-.form-group label{font-family:'Exo 2',sans-serif;font-size:0.75rem;font-weight:600;
-  text-transform:uppercase;letter-spacing:2px;color:rgba(224,224,255,0.4);margin-bottom:8px}
-.form-group input,.form-group select{background:rgba(0,0,0,0.4);
-  border:1px solid rgba(0,240,255,0.1);border-radius:10px;padding:14px 16px;
-  font-size:0.95rem;color:#fff;font-family:'Rajdhani',sans-serif;
-  outline:none;transition:all .3s}
-.form-group input:focus,.form-group select:focus{border-color:var(--cyan);
-  box-shadow:0 0 20px rgba(0,240,255,0.1)}
-.form-group select option{background:#0a0a1a;color:#fff}
-.demo-btn{grid-column:1/-1;padding:18px 40px;
-  background:linear-gradient(135deg,var(--cyan),var(--blue),var(--magenta));
-  background-size:200% 200%;color:#000;border:none;border-radius:14px;
-  font-family:'Orbitron',monospace;font-size:0.9rem;font-weight:700;
-  text-transform:uppercase;letter-spacing:3px;cursor:pointer;
-  transition:all .4s;position:relative;overflow:hidden;
-  animation:gradientShift 4s ease infinite}
-@keyframes gradientShift{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
-.demo-btn:hover{transform:translateY(-3px);box-shadow:0 10px 40px rgba(0,240,255,0.3)}
-.demo-btn::after{content:'';position:absolute;inset:0;
-  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.3),transparent);
-  transform:translateX(-100%);transition:transform .6s}
-.demo-btn:hover::after{transform:translateX(100%)}
+/* ═══════ QUEST BOARD ═══════ */
+.quest-board{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px;
+  max-width:1100px;margin:0 auto}
+.quest-card{background:var(--card);border:1px solid rgba(0,240,255,0.08);border-radius:16px;
+  padding:28px;position:relative;overflow:hidden;transition:all .4s;cursor:pointer}
+.quest-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,var(--cyan),var(--magenta));opacity:0;transition:opacity .3s}
+.quest-card:hover{border-color:rgba(0,240,255,0.2);transform:translateY(-4px);
+  box-shadow:0 12px 40px rgba(0,0,0,0.3)}
+.quest-card:hover::before{opacity:1}
+.quest-card .q-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.quest-card .q-icon{font-size:2rem}
+.quest-card .q-difficulty{padding:3px 10px;border-radius:6px;font-family:'Press Start 2P',monospace;
+  font-size:0.45rem;letter-spacing:1px}
+.q-easy{background:rgba(0,255,136,0.15);color:var(--green);border:1px solid rgba(0,255,136,0.3)}
+.q-medium{background:rgba(255,215,0,0.15);color:var(--gold);border:1px solid rgba(255,215,0,0.3)}
+.q-hard{background:rgba(255,51,102,0.15);color:var(--red);border:1px solid rgba(255,51,102,0.3)}
+.quest-card h3{font-family:'Orbitron',monospace;font-size:1rem;color:#fff;margin-bottom:8px}
+.quest-card p{font-size:0.85rem;color:rgba(224,224,255,0.4);line-height:1.5}
+.quest-card .q-reward{display:flex;gap:12px;margin-top:16px}
+.q-reward span{font-family:'Orbitron',monospace;font-size:0.65rem;padding:4px 10px;
+  border-radius:6px;background:rgba(255,215,0,0.08);color:var(--gold);
+  border:1px solid rgba(255,215,0,0.15)}
+.quest-card .q-progress{margin-top:16px}
+.q-progress-bar{width:100%;height:6px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden}
+.q-progress-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--cyan),var(--green));
+  transition:width 1s}
+.q-progress-text{font-size:0.7rem;color:rgba(224,224,255,0.3);margin-top:6px;
+  font-family:'Orbitron',monospace}
+.quest-card .q-complete{position:absolute;top:16px;right:16px;font-size:1.5rem;
+  animation:completeSpin 1s ease-out}
+@keyframes completeSpin{from{transform:rotate(-180deg) scale(0)}to{transform:rotate(0) scale(1)}}
 
-.result-panel{grid-column:1/-1;margin-top:24px;display:none}
-.result-panel.show{display:block;animation:glitchIn .6s ease-out}
-@keyframes glitchIn{
-  0%{opacity:0;transform:scale(0.95) translateY(20px);filter:blur(4px)}
-  20%{opacity:1;transform:scale(1.01) translateX(-3px);filter:blur(0)}
-  40%{transform:scale(0.99) translateX(3px)}
-  60%{transform:scale(1.005) translateX(-1px)}
-  100%{transform:none}
-}
-.result-card{background:rgba(0,0,0,0.3);border:1px solid rgba(0,240,255,0.1);
-  border-radius:20px;padding:36px;position:relative;overflow:hidden}
-.result-card::before{content:'';position:absolute;inset:0;
-  background:linear-gradient(135deg,rgba(0,240,255,0.02),transparent,rgba(255,0,229,0.02));
-  pointer-events:none}
-.result-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
-.result-prob{font-family:'Orbitron',monospace;font-size:3.5rem;font-weight:900}
-.result-category{padding:10px 24px;border-radius:10px;font-family:'Orbitron',monospace;
-  font-size:0.8rem;font-weight:700;letter-spacing:2px;text-transform:uppercase}
-.risk-bar{width:100%;height:6px;background:rgba(255,255,255,0.06);border-radius:3px;
-  overflow:hidden;margin:20px 0;position:relative}
-.risk-fill{height:100%;border-radius:3px;transition:width .8s cubic-bezier(.23,1,.32,1);
+/* ═══════ RISK BATTLE ARENA ═══════ */
+.battle-arena{max-width:1000px;margin:0 auto;position:relative}
+.arena-border{position:absolute;inset:-2px;border-radius:24px;
+  background:linear-gradient(135deg,var(--cyan),var(--magenta),var(--gold),var(--cyan));
+  background-size:400% 400%;animation:borderGlow 6s linear infinite;opacity:0.15;z-index:0}
+@keyframes borderGlow{0%{background-position:0% 0%}100%{background-position:400% 0%}}
+.arena-inner{position:relative;z-index:1;background:rgba(5,0,26,0.95);
+  border-radius:22px;padding:40px;backdrop-filter:blur(20px)}
+
+.battle-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:30px;
+  padding-bottom:20px;border-bottom:1px solid rgba(0,240,255,0.08)}
+.battle-title{font-family:'Press Start 2P',monospace;font-size:0.7rem;color:var(--gold);
+  letter-spacing:2px}
+
+/* Health Bars */
+.combatant{text-align:center;min-width:140px}
+.combatant .avatar{width:60px;height:60px;border-radius:50%;margin:0 auto 10px;
+  display:flex;align-items:center;justify-content:center;font-size:1.8rem;
+  border:2px solid rgba(0,240,255,0.3);position:relative}
+.combatant .avatar.hero-avatar{border-color:var(--cyan);box-shadow:0 0 20px rgba(0,240,255,0.2)}
+.combatant .avatar.enemy-avatar{border-color:var(--red);box-shadow:0 0 20px rgba(255,51,102,0.2)}
+.combatant .name{font-family:'Orbitron',monospace;font-size:0.7rem;color:#fff;margin-bottom:6px}
+.hp-bar{width:140px;height:10px;background:rgba(255,255,255,0.06);border-radius:5px;
+  overflow:hidden;margin:0 auto;position:relative}
+.hp-fill{height:100%;border-radius:5px;transition:width .8s cubic-bezier(.23,1,.32,1);
   position:relative}
-.risk-fill::after{content:'';position:absolute;inset:0;
-  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.4),transparent);
-  animation:shimmer 2s infinite}
-@keyframes shimmer{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+.hp-fill::after{content:'';position:absolute;inset:0;
+  background:linear-gradient(180deg,rgba(255,255,255,0.3),transparent);border-radius:5px}
+.hp-fill.green{background:linear-gradient(90deg,#00cc66,var(--green))}
+.hp-fill.yellow{background:linear-gradient(90deg,#cc9900,var(--gold))}
+.hp-fill.red{background:linear-gradient(90deg,#cc0033,var(--red))}
+.hp-text{font-family:'Press Start 2P',monospace;font-size:0.45rem;color:rgba(224,224,255,0.4);
+  margin-top:4px}
 
-.factors-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:24px}
-.factor-box{padding:20px;border-radius:14px;position:relative;overflow:hidden}
-.factor-box.risk{background:rgba(255,51,102,0.05);border:1px solid rgba(255,51,102,0.15)}
-.factor-box.protective{background:rgba(0,255,136,0.05);border:1px solid rgba(0,255,136,0.15)}
-.factor-box h4{font-family:'Orbitron',monospace;font-size:0.7rem;letter-spacing:2px;
-  text-transform:uppercase;margin-bottom:12px}
-.factor-box.risk h4{color:var(--red)}
-.factor-box.protective h4{color:var(--green)}
-.factor-item{font-size:0.85rem;color:rgba(224,224,255,0.5);padding:5px 0;
-  border-bottom:1px solid rgba(255,255,255,0.03)}
-.factor-item:last-child{border:none}
-.action-banner{margin-top:24px;padding:18px 28px;border-radius:12px;
-  font-family:'Orbitron',monospace;font-size:0.85rem;font-weight:700;
-  text-align:center;letter-spacing:2px;text-transform:uppercase;position:relative;overflow:hidden}
-.action-banner::before{content:'';position:absolute;inset:0;
-  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.05),transparent);
-  animation:shimmer 3s infinite}
+/* VS Badge */
+.vs-icon{font-family:'Press Start 2P',monospace;font-size:1.2rem;
+  color:var(--gold);text-shadow:0 0 30px rgba(255,215,0,0.5);animation:vsPulse 2s infinite}
+@keyframes vsPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
+
+/* Input Grid */
+.battle-inputs{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:30px 0}
+.b-field{display:flex;flex-direction:column}
+.b-field label{font-family:'Press Start 2P',monospace;font-size:0.4rem;
+  color:rgba(224,224,255,0.3);letter-spacing:1px;margin-bottom:6px;text-transform:uppercase}
+.b-field input,.b-field select{background:rgba(0,0,0,0.4);border:1px solid rgba(0,240,255,0.1);
+  border-radius:8px;padding:12px 14px;color:#fff;font-family:'Rajdhani',sans-serif;
+  font-size:0.95rem;outline:none;transition:all .3s}
+.b-field input:focus,.b-field select:focus{border-color:var(--cyan);box-shadow:0 0 15px rgba(0,240,255,0.1)}
+.b-field select option{background:#0a0a1a}
+
+.attack-btn{grid-column:1/-1;padding:18px;background:linear-gradient(135deg,var(--red),var(--orange));
+  border:none;border-radius:12px;font-family:'Press Start 2P',monospace;font-size:0.7rem;
+  color:#fff;cursor:pointer;transition:all .4s;letter-spacing:2px;position:relative;overflow:hidden}
+.attack-btn:hover{transform:translateY(-3px);box-shadow:0 10px 40px rgba(255,51,102,0.3)}
+.attack-btn::after{content:'';position:absolute;inset:0;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.2),transparent);
+  transform:translateX(-100%);transition:transform .5s}
+.attack-btn:hover::after{transform:translateX(100%)}
+.attack-btn:active{transform:scale(0.97)}
+
+/* Battle Log */
+.battle-log{max-height:200px;overflow-y:auto;padding:16px;border-radius:12px;
+  background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.04);margin-top:20px}
+.battle-log::-webkit-scrollbar{width:4px}
+.battle-log::-webkit-scrollbar-thumb{background:rgba(0,240,255,0.2);border-radius:2px}
+.log-entry{padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.03);font-size:0.8rem;
+  color:rgba(224,224,255,0.5);display:flex;gap:8px;animation:logIn .3s ease-out}
+@keyframes logIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:none}}
+.log-entry .log-turn{font-family:'Press Start 2P',monospace;font-size:0.4rem;
+  color:var(--cyan);min-width:40px}
+.log-entry.critical{color:var(--gold)}
+.log-entry.heal{color:var(--green)}
+.log-entry.damage{color:var(--red)}
+
+/* Result Banner */
+.battle-result{grid-column:1/-1;display:none;margin-top:20px}
+.battle-result.show{display:block;animation:resultIn .8s ease-out}
+@keyframes resultIn{
+  0%{opacity:0;transform:scale(0.8)}
+  50%{transform:scale(1.05)}
+  100%{opacity:1;transform:none}
+}
+.result-inner{padding:32px;border-radius:16px;text-align:center;position:relative;overflow:hidden}
+.result-inner.victory{background:rgba(0,255,136,0.05);border:1px solid rgba(0,255,136,0.2)}
+.result-inner.defeat{background:rgba(255,51,102,0.05);border:1px solid rgba(255,51,102,0.2)}
+.result-inner.draw{background:rgba(255,215,0,0.05);border:1px solid rgba(255,215,0,0.2)}
+.result-title{font-family:'Press Start 2P',monospace;font-size:1.2rem;margin-bottom:12px}
+.result-inner.victory .result-title{color:var(--green)}
+.result-inner.defeat .result-title{color:var(--red)}
+.result-inner.draw .result-title{color:var(--gold)}
+.result-stats{display:flex;justify-content:center;gap:30px;margin-top:16px}
+.result-stat{text-align:center}
+.result-stat .rs-val{font-family:'Orbitron',monospace;font-size:1.8rem;font-weight:900}
+.result-stat .rs-lbl{font-size:0.7rem;color:rgba(224,224,255,0.4);text-transform:uppercase;letter-spacing:1px}
+.xp-gain{font-family:'Press Start 2P',monospace;font-size:0.6rem;color:var(--gold);margin-top:16px}
+
+/* ═══════ ACHIEVEMENTS GALLERY ═══════ */
+.achievements-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;
+  max-width:1000px;margin:0 auto}
+.ach-card{text-align:center;padding:28px 16px;border-radius:14px;
+  background:var(--card);border:1px solid rgba(255,255,255,0.04);transition:all .4s;
+  position:relative;overflow:hidden}
+.ach-card.locked{opacity:0.35;filter:grayscale(1)}
+.ach-card.locked::after{content:'🔒';position:absolute;top:10px;right:10px;font-size:0.8rem}
+.ach-card.unlocked::after{content:'✅';position:absolute;top:10px;right:10px;font-size:0.8rem}
+.ach-card:not(.locked):hover{transform:translateY(-4px);border-color:rgba(255,215,0,0.2);
+  box-shadow:0 10px 30px rgba(255,215,0,0.08)}
+.ach-icon{font-size:2.5rem;margin-bottom:12px}
+.ach-name{font-family:'Orbitron',monospace;font-size:0.75rem;color:#fff;margin-bottom:6px}
+.ach-desc{font-size:0.75rem;color:rgba(224,224,255,0.3);line-height:1.4}
+.ach-xp{font-family:'Press Start 2P',monospace;font-size:0.4rem;color:var(--gold);margin-top:10px}
+
+/* ═══════ MINI-GAME: SLOT MACHINE ═══════ */
+.slot-section{background:rgba(0,0,0,0.2);border-top:1px solid rgba(0,240,255,0.05);
+  border-bottom:1px solid rgba(0,240,255,0.05)}
+.slot-machine{max-width:500px;margin:0 auto;text-align:center}
+.slot-reels{display:flex;justify-content:center;gap:12px;margin:30px 0}
+.slot-reel{width:90px;height:90px;border-radius:14px;
+  background:rgba(0,0,0,0.5);border:2px solid rgba(0,240,255,0.15);
+  display:flex;align-items:center;justify-content:center;font-size:2.5rem;
+  overflow:hidden;position:relative}
+.slot-reel.spinning{animation:reelSpin .1s linear infinite}
+@keyframes reelSpin{0%{transform:translateY(-5px)}50%{transform:translateY(5px)}100%{transform:translateY(-5px)}}
+.slot-reel .symbol{transition:all .3s}
+.spin-btn{padding:14px 40px;background:linear-gradient(135deg,var(--gold),var(--orange));
+  border:none;border-radius:10px;font-family:'Press Start 2P',monospace;font-size:0.65rem;
+  color:#000;cursor:pointer;transition:all .3s}
+.spin-btn:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(255,215,0,0.3)}
+.spin-btn:disabled{opacity:0.5;cursor:not-allowed;transform:none}
+.slot-result{font-family:'Orbitron',monospace;font-size:1rem;margin-top:16px;min-height:30px}
+.slot-cost{font-size:0.8rem;color:rgba(224,224,255,0.3);margin-top:8px}
+
+/* ═══════ LEADERBOARD ═══════ */
+.leaderboard{max-width:600px;margin:0 auto}
+.lb-entry{display:flex;align-items:center;gap:16px;padding:14px 20px;
+  border-radius:10px;margin-bottom:8px;background:var(--card);
+  border:1px solid rgba(255,255,255,0.04);transition:all .3s}
+.lb-entry:hover{border-color:rgba(0,240,255,0.15)}
+.lb-entry.you{border-color:var(--gold);background:rgba(255,215,0,0.05)}
+.lb-rank{font-family:'Press Start 2P',monospace;font-size:0.6rem;min-width:40px;
+  text-align:center}
+.lb-rank.gold{color:var(--gold)}
+.lb-rank.silver{color:#c0c0c0}
+.lb-rank.bronze{color:#cd7f32}
+.lb-avatar{font-size:1.5rem}
+.lb-info{flex:1}
+.lb-name{font-family:'Orbitron',monospace;font-size:0.85rem;color:#fff}
+.lb-level{font-size:0.7rem;color:rgba(224,224,255,0.3)}
+.lb-score{font-family:'Orbitron',monospace;font-size:1rem;font-weight:700;color:var(--gold)}
+
+/* ═══════ FLOATING DAMAGE/HEAL NUMBERS ═══════ */
+.floating-text{position:fixed;pointer-events:none;z-index:99999;
+  font-family:'Press Start 2P',monospace;font-size:1.2rem;font-weight:900;
+  animation:floatUp 1.5s ease-out forwards;text-shadow:0 0 10px currentColor}
+@keyframes floatUp{0%{opacity:1;transform:translateY(0) scale(1)}50%{opacity:1;transform:translateY(-40px) scale(1.2)}100%{opacity:0;transform:translateY(-80px) scale(0.8)}}
+.floating-text.damage{color:var(--red)}
+.floating-text.heal{color:var(--green)}
+.floating-text.critical{color:var(--gold);font-size:1.8rem}
+.floating-text.xp{color:var(--gold);font-size:0.9rem}
+
+/* ═══════ LEVEL UP OVERLAY ═══════ */
+.levelup-overlay{position:fixed;inset:0;z-index:99998;display:flex;align-items:center;
+  justify-content:center;background:rgba(0,0,0,0.8);opacity:0;visibility:hidden;
+  transition:all .5s}
+.levelup-overlay.show{opacity:1;visibility:visible}
+.levelup-content{text-align:center;animation:levelBounce 1s ease-out}
+@keyframes levelBounce{0%{transform:scale(0) rotate(-10deg)}60%{transform:scale(1.2) rotate(5deg)}100%{transform:none}}
+.levelup-title{font-family:'Press Start 2P',monospace;font-size:1.5rem;
+  color:var(--gold);margin-bottom:12px;text-shadow:0 0 40px rgba(255,215,0,0.5)}
+.levelup-level{font-family:'Orbitron',monospace;font-size:4rem;font-weight:900;
+  background:linear-gradient(135deg,var(--gold),var(--cyan),var(--magenta));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 0 30px rgba(255,215,0,0.4))}
+.levelup-bonus{font-size:1rem;color:rgba(224,224,255,0.5);margin-top:12px}
+.levelup-close{margin-top:30px;padding:12px 30px;background:var(--gold);border:none;
+  border-radius:8px;font-family:'Press Start 2P',monospace;font-size:0.6rem;color:#000;cursor:pointer}
 
 /* ═══════ FOOTER ═══════ */
-footer{border-top:1px solid rgba(0,240,255,0.05);padding:60px 0;text-align:center;
-  background:linear-gradient(180deg,transparent,rgba(0,0,0,0.3))}
-footer p{color:rgba(224,224,255,0.3);font-size:0.85rem}
-footer .footer-brand{font-family:'Orbitron',monospace;font-size:1rem;font-weight:900;
-  background:linear-gradient(90deg,var(--cyan),var(--magenta));
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:12px}
-
-/* ═══════ SCROLL ANIMATIONS ═══════ */
-.reveal{opacity:0;transform:translateY(40px);transition:all .8s cubic-bezier(.23,1,.32,1)}
-.reveal.visible{opacity:1;transform:none}
-.reveal-delay-1{transition-delay:.1s}.reveal-delay-2{transition-delay:.2s}
-.reveal-delay-3{transition-delay:.3s}.reveal-delay-4{transition-delay:.4s}
-.reveal-delay-5{transition-delay:.5s}
-
-/* ═══════ SCAN LINE ═══════ */
-.scanline{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9998;
-  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,240,255,0.008) 2px,rgba(0,240,255,0.008) 4px)}
+footer{border-top:1px solid rgba(0,240,255,0.05);padding:40px 0;text-align:center}
+footer p{color:rgba(224,224,255,0.2);font-size:0.8rem}
 
 /* ═══════ RESPONSIVE ═══════ */
 @media(max-width:768px){
-  .hero h1{font-size:2.2rem}.hero h1 .line2{font-size:1.5rem}
-  .hero-stats{flex-direction:column;gap:20px}
-  .problem-grid{grid-template-columns:1fr}.vs-badge{margin:20px auto}
-  .arch-grid{grid-template-columns:1fr}
-  .demo-grid{grid-template-columns:1fr}.factors-grid{grid-template-columns:1fr}
-  .stats-grid{grid-template-columns:1fr 1fr}
+  .hero-title{font-size:1.2rem}.hero-subtitle{font-size:1.2rem}
+  .battle-inputs{grid-template-columns:1fr}.combatant{min-width:auto}
+  .battle-header{flex-direction:column;gap:20px}
+  .hud{top:auto;bottom:12px;right:12px;flex-wrap:wrap;gap:6px}
+  .hud-item{font-size:0.55rem;padding:4px 10px}
+  .slot-reels{gap:8px}.slot-reel{width:70px;height:70px;font-size:2rem}
   .nav-links{display:none}
-  .orbit-container{width:250px;height:250px}
+  .achievements-grid{grid-template-columns:1fr 1fr}
 }
+
+/* ═══════ SCROLLBAR ═══════ */
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:rgba(0,0,0,0.2)}
+::-webkit-scrollbar-thumb{background:rgba(0,240,255,0.2);border-radius:3px}
 </style>
 </head>
 <body>
 
 <!-- PRELOADER -->
 <div class="preloader" id="preloader">
-  <div class="loader-ring"></div>
-  <div class="loader-text">INITIALIZING SYSTEM</div>
+  <div class="title">DEFAULT//PREDICT</div>
+  <div class="loading-bar"><div class="loading-fill" id="loadingFill"></div></div>
+  <div class="loading-text">LOADING BATTLE ARENA...</div>
+  <div class="loading-pct" id="loadingPct">0%</div>
 </div>
 
-<!-- CANVAS LAYERS -->
-<canvas id="nebulaCanvas"></canvas>
-<canvas id="gridCanvas"></canvas>
-<canvas id="particleCanvas"></canvas>
-<div class="scanline"></div>
+<!-- BG CANVAS -->
+<canvas id="bgCanvas"></canvas>
+
+<!-- XP BAR -->
+<div class="xp-bar-container"><div class="xp-bar-fill" id="xpBarFill" style="width:0%"></div></div>
+
+<!-- HUD -->
+<div class="hud">
+  <div class="hud-item"><span class="icon">🏅</span><span>LVL</span><span class="val" id="hudLevel">1</span></div>
+  <div class="hud-item xp"><span class="icon">⭐</span><span>XP</span><span class="val" id="hudXP">0</span><span>/</span><span class="val" id="hudXPMax">100</span></div>
+  <div class="hud-item pts"><span class="icon">💎</span><span class="val" id="hudPoints">0</span></div>
+  <div class="hud-item streak"><span class="icon">🔥</span><span class="val" id="hudStreak">0</span></div>
+</div>
+
+<!-- ACHIEVEMENT POPUP -->
+<div class="achievement-popup" id="achPopup">
+  <div class="ach-label">ACHIEVEMENT UNLOCKED</div>
+  <div class="ach-title" id="achTitle"></div>
+  <div class="ach-desc" id="achDesc"></div>
+  <div class="ach-xp" id="achXP"></div>
+</div>
+
+<!-- LEVEL UP OVERLAY -->
+<div class="levelup-overlay" id="levelupOverlay">
+  <div class="levelup-content">
+    <div class="levelup-title">LEVEL UP!</div>
+    <div class="levelup-level" id="levelupLevel">2</div>
+    <div class="levelup-bonus" id="levelupBonus">+50 Max HP | +10 ATK</div>
+    <button class="levelup-close" onclick="closeLevelUp()">CONTINUE</button>
+  </div>
+</div>
+
+<!-- AUDIO TOGGLE -->
+<div class="audio-toggle muted" id="audioToggle" onclick="toggleAudio()" title="Toggle Sound">🔇</div>
 
 <div class="content">
 
@@ -435,394 +431,234 @@ footer .footer-brand{font-family:'Orbitron',monospace;font-size:1rem;font-weight
   <div class="nav-inner">
     <div class="nav-brand">DEFAULT//PREDICT</div>
     <div class="nav-links">
-      <a href="#problem">Problem</a>
-      <a href="#architecture">Architecture</a>
-      <a href="#codebase">Codebase</a>
-      <a href="#models">Models</a>
-      <a href="#stats">Performance</a>
-      <a href="#demo">Demo</a>
+      <a href="#quests">Quests</a>
+      <a href="#battle">Battle</a>
+      <a href="#achievements">Feats</a>
+      <a href="#slots">Slots</a>
+      <a href="#leaderboard">Rankings</a>
     </div>
   </div>
 </nav>
 
 <!-- HERO -->
-<section class="hero" id="hero">
-  <div class="floating-shapes">
-    <div class="shape shape-1"></div>
-    <div class="shape shape-2"></div>
-    <div class="shape shape-3"></div>
-    <div class="shape shape-4"></div>
-    <div class="shape shape-5"></div>
-  </div>
+<section class="hero">
   <div class="hero-content">
-    <div class="hero-badge"><span class="dot"></span> PROBLEM STATEMENT 4</div>
-    <h1>
-      LOAN DEFAULT<br>PREDICTION MODEL
-      <span class="line2">12-Month Advance Detection</span>
-    </h1>
-    <div class="hero-stats">
-      <div class="hero-stat"><div class="val" data-count="90">0</div><div class="lbl">Target Accuracy %</div></div>
-      <div class="hero-stat"><div class="val" data-count="6">0</div><div class="lbl">Loan Types</div></div>
-      <div class="hero-stat"><div class="val" data-count="50">0</div><div class="lbl">Engineered Features</div></div>
+    <div class="hero-quest">
+      <span class="quest-icon">⚔️</span>
+      <span class="quest-text">MAIN QUEST: DEFEAT THE DEFAULT BOSS</span>
     </div>
-    <div class="hero-cta">
-      <a href="#demo" class="btn btn-primary">Run Prediction</a>
-      <a href="#architecture" class="btn btn-outline">View Architecture</a>
+    <h1 class="hero-title">DEFAULT//PREDICT</h1>
+    <div class="hero-subtitle">RPG Risk Battle Arena</div>
+    <p class="hero-desc">Battle the Default Demon using ML-powered attacks. Earn XP, level up, unlock achievements, and prove your prediction skills across 6 loan-type dungeons.</p>
+    <div class="hero-buttons">
+      <a href="#battle" class="btn btn-primary">⚔️ ENTER ARENA</a>
+      <a href="#quests" class="btn btn-secondary">📜 VIEW QUESTS</a>
+      <a href="#achievements" class="btn btn-danger">🏆 ACHIEVEMENTS</a>
     </div>
   </div>
 </section>
 
-<!-- PROBLEM -->
-<section class="problem-section" id="problem">
+<!-- QUEST BOARD -->
+<section id="quests">
   <div class="container">
-    <div class="sec-header reveal">
-      <div class="sec-label">// The Challenge</div>
-      <div class="sec-title">CURRENT STATE vs EXPECTED</div>
-      <div class="sec-sub">From 16-22% accuracy to a robust 90%+ predictive solution</div>
+    <div class="sec-header">
+      <div class="sec-label">📜 QUEST BOARD</div>
+      <div class="sec-title">ACTIVE QUESTS</div>
+      <div class="sec-sub">Complete quests to earn XP, points, and unlock achievements</div>
     </div>
-    <div class="problem-grid">
-      <div class="problem-box current reveal">
-        <h3>Current Limitations</h3>
-        <ul>
-          <li>Low prediction accuracy (16-22%)</li>
-          <li>Solely dependent on structured data</li>
-          <li>Fragmented methodologies per loan type</li>
-          <li>No borrower segment differentiation</li>
-          <li>Inconsistent interpretation frameworks</li>
-          <li>No advance warning system</li>
-        </ul>
-      </div>
-      <div class="vs-badge reveal">VS</div>
-      <div class="problem-box expected reveal">
-        <h3>Expected Outcome</h3>
-        <ul>
-          <li>Robust accuracy target of 90%+</li>
-          <li>Structured + unstructured data fusion</li>
-          <li>Loan-type-specific analytics</li>
-          <li>Borrower profile differentiation</li>
-          <li>Common interpretation framework</li>
-          <li>12-month advance detection</li>
-        </ul>
-      </div>
-    </div>
+    <div class="quest-board" id="questBoard"></div>
   </div>
 </section>
 
-<!-- ARCHITECTURE -->
-<section id="architecture">
+<!-- BATTLE ARENA -->
+<section id="battle">
   <div class="container">
-    <div class="sec-header reveal">
-      <div class="sec-label">// Solution Design</div>
-      <div class="sec-title">END-TO-END ARCHITECTURE</div>
-      <div class="sec-sub">Seven-layer pipeline from raw data to explainable predictions</div>
+    <div class="sec-header">
+      <div class="sec-label">⚔️ BATTLE ARENA</div>
+      <div class="sec-title">RISK BATTLE</div>
+      <div class="sec-sub">Deploy your ML models to defeat the Default Demon</div>
     </div>
-    <div class="arch-grid">
-      <div class="arch-card reveal reveal-delay-1" onmousemove="tiltCard(event,this)" onmouseleave="resetCard(this)">
-        <div class="arch-icon" style="background:rgba(0,240,255,0.08)">&#128229;</div>
-        <h3>Data Ingestion</h3>
-        <p>CSV/Parquet loading, unstructured text, synthetic data generation, 12-month default labels.</p>
-        <div class="tag-list"><span class="tag">CSV</span><span class="tag">Parquet</span><span class="tag">Text</span><span class="tag">NLP</span></div>
-      </div>
-      <div class="arch-card reveal reveal-delay-2" onmousemove="tiltCard(event,this)" onmouseleave="resetCard(this)">
-        <div class="arch-icon" style="background:rgba(168,85,247,0.08)">&#129529;</div>
-        <h3>Preprocessing</h3>
-        <p>Missing values, IQR outlier removal, encoding, scaling, date decomposition, text cleaning.</p>
-        <div class="tag-list"><span class="tag">Imputation</span><span class="tag">Scaling</span><span class="tag">NLP</span></div>
-      </div>
-      <div class="arch-card reveal reveal-delay-3" onmousemove="tiltCard(event,this)" onmouseleave="resetCard(this)">
-        <div class="arch-icon" style="background:rgba(0,255,136,0.08)">&#128295;</div>
-        <h3>Feature Engineering</h3>
-        <p>50+ features: financial ratios, risk indicators, interactions, temporal, loan-specific.</p>
-        <div class="tag-list"><span class="tag">50+ Features</span><span class="tag">Ratios</span><span class="tag">Interactions</span></div>
-      </div>
-      <div class="arch-card reveal reveal-delay-4" onmousemove="tiltCard(event,this)" onmouseleave="resetCard(this)">
-        <div class="arch-icon" style="background:rgba(245,158,11,0.08)">&#129302;</div>
-        <h3>Model Training</h3>
-        <p>6 algorithms, SMOTE balancing, stacking ensemble, loan-type models, Optuna tuning.</p>
-        <div class="tag-list"><span class="tag">XGBoost</span><span class="tag">LightGBM</span><span class="tag">Stacking</span></div>
-      </div>
-      <div class="arch-card reveal reveal-delay-5" onmousemove="tiltCard(event,this)" onmouseleave="resetCard(this)">
-        <div class="arch-icon" style="background:rgba(255,51,102,0.08)">&#128200;</div>
-        <h3>Evaluation</h3>
-        <p>AUC-ROC, F1, Brier, calibration, lift charts, threshold optimization, segment breakdowns.</p>
-        <div class="tag-list"><span class="tag">AUC-ROC</span><span class="tag">Calibration</span><span class="tag">Lift</span></div>
-      </div>
-      <div class="arch-card reveal reveal-delay-5" onmousemove="tiltCard(event,this)" onmouseleave="resetCard(this)">
-        <div class="arch-icon" style="background:rgba(77,124,255,0.08)">&#128269;</div>
-        <h3>Interpretation</h3>
-        <p>SHAP explanations, feature importance, segment analysis, consistent framework.</p>
-        <div class="tag-list"><span class="tag">SHAP</span><span class="tag">Global/Local</span><span class="tag">Consistent</span></div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- PIPELINE -->
-<section class="pipeline-section">
-  <div class="container">
-    <div class="sec-header reveal">
-      <div class="sec-label">// Processing Flow</div>
-      <div class="sec-title">PIPELINE STAGES</div>
-    </div>
-    <div class="pipeline-track reveal">
-      <div class="pipeline-step"><div class="num">01</div><h4>Ingest</h4></div>
-      <span class="pipeline-arrow">&#10132;</span>
-      <div class="pipeline-step"><div class="num">02</div><h4>Clean</h4></div>
-      <span class="pipeline-arrow">&#10132;</span>
-      <div class="pipeline-step"><div class="num">03</div><h4>Engineer</h4></div>
-      <span class="pipeline-arrow">&#10132;</span>
-      <div class="pipeline-step"><div class="num">04</div><h4>Split</h4></div>
-      <span class="pipeline-arrow">&#10132;</span>
-      <div class="pipeline-step"><div class="num">05</div><h4>Train</h4></div>
-      <span class="pipeline-arrow">&#10132;</span>
-      <div class="pipeline-step"><div class="num">06</div><h4>Evaluate</h4></div>
-      <span class="pipeline-arrow">&#10132;</span>
-      <div class="pipeline-step"><div class="num">07</div><h4>Interpret</h4></div>
-    </div>
-  </div>
-</section>
-
-<!-- CODEBASE -->
-<section class="code-section" id="codebase">
-  <div class="container">
-    <div class="sec-header reveal">
-      <div class="sec-label">// Implementation</div>
-      <div class="sec-title">PROJECT CODEBASE</div>
-    </div>
-    <div class="code-window reveal">
-      <div class="code-titlebar">
-        <div class="code-dot r"></div><div class="code-dot y"></div><div class="code-dot g"></div>
-        <div class="code-title">default_prediction_model</div>
-      </div>
-      <div class="code-body">
-<span class="d">default_prediction_model/</span>
-&#9500;&#9472;&#9472; <span class="f">run_pipeline.py</span>         <span class="c"># Main entry — orchestrates full pipeline</span>
-&#9500;&#9472;&#9472; <span class="f">config.yaml</span>            <span class="c"># Central configuration</span>
-&#9500;&#9472;&#9472; <span class="f">requirements.txt</span>       <span class="c"># Python dependencies</span>
-&#9500;&#9472;&#9472; <span class="f">index.html</span>             <span class="c"># This landing page</span>
-&#9492;&#9472;&#9472; <span class="d">src/</span>
-    &#9500;&#9472;&#9472; <span class="d">data/</span>
-    &#9474;   &#9500;&#9472;&#9472; <span class="f">ingestion.py</span>       <span class="c"># Data loading + synthetic generation</span>
-    &#9474;   &#9492;&#9472;&#9472; <span class="f">preprocessing.py</span>   <span class="c"># Cleaning, encoding, text processing</span>
-    &#9500;&#9472;&#9472; <span class="d">features/</span>
-    &#9474;   &#9492;&#9472;&#9472; <span class="f">engineering.py</span>     <span class="c"># 50+ engineered features</span>
-    &#9500;&#9472;&#9472; <span class="d">models/</span>
-    &#9474;   &#9500;&#9472;&#9472; <span class="f">training.py</span>        <span class="c"># 6 algorithms + stacking + SMOTE</span>
-    &#9474;   &#9492;&#9472;&#9472; <span class="f">prediction.py</span>      <span class="c"># 12-month horizon predictions</span>
-    &#9500;&#9472;&#9472; <span class="d">evaluation/</span>
-    &#9474;   &#9492;&#9472;&#9472; <span class="f">metrics.py</span>         <span class="c"># Full evaluation + calibration</span>
-    &#9500;&#9472;&#9472; <span class="d">interpretation/</span>
-    &#9474;   &#9492;&#9472;&#9472; <span class="f">framework.py</span>       <span class="c"># SHAP + consistent framework</span>
-    &#9492;&#9472;&#9472; <span class="d">api/</span>
-        &#9492;&#9472;&#9472; <span class="f">app.py</span>             <span class="c"># FastAPI REST endpoints</span>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- LOAN TYPES + MODELS -->
-<section id="models">
-  <div class="container">
-    <div class="sec-header reveal">
-      <div class="sec-label">// Coverage</div>
-      <div class="sec-title">SUPPORTED LOAN TYPES</div>
-    </div>
-    <div class="loan-grid reveal">
-      <div class="loan-card"><h4>Personal</h4></div>
-      <div class="loan-card"><h4>Mortgage</h4></div>
-      <div class="loan-card"><h4>Auto</h4></div>
-      <div class="loan-card"><h4>Business</h4></div>
-      <div class="loan-card"><h4>Student</h4></div>
-      <div class="loan-card"><h4>Credit Card</h4></div>
-    </div>
-
-    <div class="sec-header reveal" style="margin-top:80px">
-      <div class="sec-label">// Algorithms</div>
-      <div class="sec-title">ML MODEL ARSENAL</div>
-    </div>
-    <div class="model-cards-grid reveal">
-      <div class="model-pill"><h4>Logistic Reg</h4><p>Interpretable baseline</p></div>
-      <div class="model-pill"><h4>Random Forest</h4><p>Ensemble robustness</p></div>
-      <div class="model-pill"><h4>XGBoost</h4><p>State-of-the-art GBM</p></div>
-      <div class="model-pill"><h4>LightGBM</h4><p>Scalable boosting</p></div>
-      <div class="model-pill"><h4>CatBoost</h4><p>Categorical handling</p></div>
-      <div class="model-pill"><h4>Stacking</h4><p>Meta-learner ensemble</p></div>
-    </div>
-
-    <div class="sec-header reveal" style="margin-top:80px">
-      <div class="sec-label">// Segments</div>
-      <div class="sec-title">BORROWER PROFILES</div>
-    </div>
-    <div class="model-cards-grid reveal">
-      <div class="model-pill"><h4>Prime</h4><p>Credit 720+</p></div>
-      <div class="model-pill"><h4>Near Prime</h4><p>Credit 660-719</p></div>
-      <div class="model-pill"><h4>Subprime</h4><p>Credit 600-659</p></div>
-      <div class="model-pill"><h4>Deep Subprime</h4><p>Credit below 600</p></div>
-    </div>
-  </div>
-</section>
-
-<!-- STATS -->
-<section class="stats-section" id="stats">
-  <div class="container">
-    <div class="sec-header reveal">
-      <div class="sec-label">// Results</div>
-      <div class="sec-title">PERFORMANCE TARGETS</div>
-      <div class="sec-sub">Achieving 90%+ accuracy — up from 16-22% baseline</div>
-    </div>
-    <div class="stats-grid reveal">
-      <div class="stat-card"><div class="stat-value" data-count="90">0</div><div class="stat-label">Target Accuracy</div><div class="stat-delta">+ from 16-22%</div></div>
-      <div class="stat-card"><div class="stat-value" data-count="95">0</div><div class="stat-label">Target AUC-ROC</div><div class="stat-delta">+ from ~0.55</div></div>
-      <div class="stat-card"><div class="stat-value">12</div><div class="stat-label">Month Horizon</div><div class="stat-delta">Advance warning</div></div>
-      <div class="stat-card"><div class="stat-value" data-count="6">0</div><div class="stat-label">Loan Types</div><div class="stat-delta">All covered</div></div>
-    </div>
-  </div>
-</section>
-
-<!-- DEMO -->
-<section id="demo">
-  <div class="container">
-    <div class="sec-header reveal">
-      <div class="sec-label">// Interactive</div>
-      <div class="sec-title">DEFAULT PREDICTION DEMO</div>
-      <div class="sec-sub">Enter borrower details for real-time 12-month risk assessment</div>
-    </div>
-    <div class="demo-wrapper reveal">
-      <form class="demo-grid" onsubmit="predictDefault(event)">
-        <div class="form-group"><label>Loan Amount ($)</label><input type="number" id="loanAmount" value="15000"></div>
-        <div class="form-group"><label>Interest Rate (%)</label><input type="number" id="interestRate" step="0.1" value="12.5"></div>
-        <div class="form-group"><label>Annual Income ($)</label><input type="number" id="annualIncome" value="65000"></div>
-        <div class="form-group"><label>Debt-to-Income</label><input type="number" id="debtToIncome" step="0.01" value="0.28"></div>
-        <div class="form-group"><label>Credit Score</label><input type="number" id="creditScore" value="720"></div>
-        <div class="form-group"><label>Employment (years)</label><input type="number" id="employmentLength" value="5"></div>
-        <div class="form-group"><label>Loan Type</label>
-          <select id="loanType"><option value="personal">Personal</option><option value="mortgage">Mortgage</option><option value="auto">Auto</option><option value="business">Business</option><option value="student">Student</option><option value="credit_card">Credit Card</option></select>
-        </div>
-        <div class="form-group"><label>Borrower Segment</label>
-          <select id="segment"><option value="prime">Prime</option><option value="near_prime">Near Prime</option><option value="subprime">Subprime</option><option value="deep_subprime">Deep Subprime</option></select>
-        </div>
-        <button type="submit" class="demo-btn">Run 12-Month Default Prediction</button>
-      </form>
-      <div class="result-panel" id="resultPanel">
-        <div class="result-card">
-          <div class="result-top">
-            <div><div style="color:rgba(224,224,255,0.4);font-size:0.8rem;letter-spacing:2px;text-transform:uppercase">12-Month Default Probability</div><div class="result-prob" id="resultProb"></div></div>
-            <div class="result-category" id="resultCategory"></div>
+    <div class="battle-arena">
+      <div class="arena-border"></div>
+      <div class="arena-inner">
+        <!-- Combat Header -->
+        <div class="battle-header">
+          <div class="combatant">
+            <div class="avatar hero-avatar">🧙</div>
+            <div class="name">ML PREDICTOR</div>
+            <div class="hp-bar"><div class="hp-fill green" id="heroHP" style="width:100%"></div></div>
+            <div class="hp-text" id="heroHPText">100/100</div>
           </div>
-          <div class="risk-bar"><div class="risk-fill" id="riskFill"></div></div>
-          <div class="factors-grid">
-            <div class="factor-box risk"><h4>&#9888; Risk Factors</h4><div id="riskFactors"></div></div>
-            <div class="factor-box protective"><h4>&#10003; Protective Factors</h4><div id="protectiveFactors"></div></div>
+          <div class="vs-icon">⚔️</div>
+          <div class="combatant">
+            <div class="avatar enemy-avatar">👹</div>
+            <div class="name">DEFAULT DEMON</div>
+            <div class="hp-bar"><div class="hp-fill red" id="enemyHP" style="width:100%"></div></div>
+            <div class="hp-text" id="enemyHPText">150/150</div>
           </div>
-          <div class="action-banner" id="actionBanner"></div>
         </div>
+
+        <!-- Battle Form -->
+        <div class="battle-inputs" id="battleForm">
+          <div class="b-field"><label>Loan Amount ($)</label><input type="number" id="bLoan" value="15000"></div>
+          <div class="b-field"><label>Interest Rate (%)</label><input type="number" id="bRate" step="0.1" value="12.5"></div>
+          <div class="b-field"><label>Annual Income ($)</label><input type="number" id="bIncome" value="65000"></div>
+          <div class="b-field"><label>Debt-to-Income</label><input type="number" id="bDTI" step="0.01" value="0.28"></div>
+          <div class="b-field"><label>Credit Score</label><input type="number" id="bCredit" value="720"></div>
+          <div class="b-field"><label>Employment (yrs)</label><input type="number" id="bEmp" value="5"></div>
+          <div class="b-field"><label>Loan Type</label>
+            <select id="bType"><option value="personal">Personal</option><option value="mortgage">Mortgage</option><option value="auto">Auto</option><option value="business">Business</option><option value="student">Student</option><option value="credit_card">Credit Card</option></select></div>
+          <div class="b-field"><label>Segment</label>
+            <select id="bSeg"><option value="prime">Prime</option><option value="near_prime">Near Prime</option><option value="subprime">Subprime</option><option value="deep_subprime">Deep Subprime</option></select></div>
+          <button class="attack-btn" id="attackBtn" onclick="executeAttack()">⚔️ EXECUTE PREDICTION ATTACK</button>
+        </div>
+
+        <!-- Battle Log -->
+        <div class="battle-log" id="battleLog">
+          <div class="log-entry"><span class="log-turn">SYS</span> Battle Arena initialized. Deploy your features to attack!</div>
+        </div>
+
+        <!-- Result -->
+        <div class="battle-result" id="battleResult"></div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- FOOTER -->
+<!-- SLOT MACHINE -->
+<section class="slot-section" id="slots">
+  <div class="container">
+    <div class="sec-header">
+      <div class="sec-label">🎰 LOOT BOX</div>
+      <div class="sec-title">FEATURE SLOT MACHINE</div>
+      <div class="sec-sub">Spend points to spin for bonus XP and power-ups</div>
+    </div>
+    <div class="slot-machine">
+      <div class="slot-reels">
+        <div class="slot-reel" id="reel1"><span class="symbol">📊</span></div>
+        <div class="slot-reel" id="reel2"><span class="symbol">🤖</span></div>
+        <div class="slot-reel" id="reel3"><span class="symbol">📈</span></div>
+      </div>
+      <button class="spin-btn" id="spinBtn" onclick="spinSlots()">🎰 SPIN (50 PTS)</button>
+      <div class="slot-result" id="slotResult"></div>
+      <div class="slot-cost">Cost: 50 points per spin</div>
+    </div>
+  </div>
+</section>
+
+<!-- ACHIEVEMENTS -->
+<section id="achievements">
+  <div class="container">
+    <div class="sec-header">
+      <div class="sec-label">🏆 HALL OF FAME</div>
+      <div class="sec-title">ACHIEVEMENTS</div>
+      <div class="sec-sub">Unlock feats of prediction mastery</div>
+    </div>
+    <div class="achievements-grid" id="achGrid"></div>
+  </div>
+</section>
+
+<!-- LEADERBOARD -->
+<section id="leaderboard">
+  <div class="container">
+    <div class="sec-header">
+      <div class="sec-label">👑 RANKINGS</div>
+      <div class="sec-title">LEADERBOARD</div>
+    </div>
+    <div class="leaderboard" id="leaderboard"></div>
+  </div>
+</section>
+
 <footer>
   <div class="container">
-    <div class="footer-brand">DEFAULT//PREDICT</div>
-    <p>Structured + Unstructured Data | 12-Month Horizon | 90% Accuracy Target | Common Interpretation Framework</p>
-    <p style="margin-top:12px;opacity:0.4;font-size:0.8rem">Licensed under GPL-3.0 | 2026</p>
+    <p>Default Predict RPG — Earn XP, Level Up, Defeat the Default Demon</p>
+    <p style="margin-top:8px;opacity:0.4;font-size:0.75rem">GPL-3.0 | 2026</p>
   </div>
 </footer>
 
-</div><!-- .content -->
+</div>
 
 <script>
-/* ═══════ PRELOADER ═══════ */
-window.addEventListener('load',()=>{
-  setTimeout(()=>document.getElementById('preloader').classList.add('hidden'),1500);
-});
+/* ═══════ GAME STATE ═══════ */
+const G = {
+  level: 1, xp: 0, xpMax: 100, points: 0, streak: 0, maxStreak: 0,
+  battlesWon: 0, battlesLost: 0, totalDamage: 0, totalHeals: 0,
+  spins: 0, achievements: new Set(),
+  heroHP: 100, heroMaxHP: 100, heroATK: 15,
+  enemyHP: 150, enemyMaxHP: 150, enemyATK: 10,
+  turn: 0, combo: 0, audioEnabled: false,
+  quests: {}
+};
 
-/* ═══════ NEBULA CANVAS ═══════ */
+const SYMBOLS = ['📊','🤖','📈','🧠','⚡','🔮','💰','🎯','🔥','💎'];
+const SYMBOL_VALS = {'💎':500,'🔥':300,'🎯':200,'⚡':150,'🔮':100,'🧠':80,'💰':60,'📈':40,'🤖':30,'📊':20};
+
+/* ═══════ AUDIO CONTEXT ═══════ */
+let audioCtx = null;
+function initAudio(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)()}
+function playTone(freq,dur=0.1,type='square',vol=0.08){
+  if(!G.audioEnabled||!audioCtx)return;
+  const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+  o.type=type;o.frequency.setValueAtTime(freq,audioCtx.currentTime);
+  g.gain.setValueAtTime(vol,audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+dur);
+  o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+dur);
+}
+function playHit(){playTone(200,0.1,'sawtooth',0.1);setTimeout(()=>playTone(150,0.15,'square',0.08),50)}
+function playCrit(){playTone(400,0.05,'square',0.12);setTimeout(()=>playTone(600,0.1,'sawtooth',0.1),60);setTimeout(()=>playTone(800,0.15,'sine',0.08),120)}
+function playHeal(){playTone(523,0.15,'sine',0.08);setTimeout(()=>playTone(659,0.15,'sine',0.08),100)}
+function playVictory(){[523,659,784,1047].forEach((f,i)=>setTimeout(()=>playTone(f,0.2,'sine',0.1),i*150))}
+function playDefeat(){[400,350,300,200].forEach((f,i)=>setTimeout(()=>playTone(f,0.3,'sawtooth',0.08),i*200))}
+function playLevelUp(){[523,659,784,1047,1319].forEach((f,i)=>setTimeout(()=>playTone(f,0.15,'sine',0.12),i*100))}
+function playSpin(){playTone(300,0.05,'square',0.05)}
+function playJackpot(){[800,1000,1200,1600].forEach((f,i)=>setTimeout(()=>playTone(f,0.2,'sine',0.15),i*80))}
+
+function toggleAudio(){
+  G.audioEnabled=!G.audioEnabled;
+  const btn=document.getElementById('audioToggle');
+  btn.textContent=G.audioEnabled?'🔊':'🔇';
+  btn.classList.toggle('muted',!G.audioEnabled);
+  if(G.audioEnabled)initAudio();
+}
+
+/* ═══════ PRELOADER ═══════ */
 (function(){
-  const c=document.getElementById('nebulaCanvas'),x=c.getContext('2d');
+  let pct=0;const fill=document.getElementById('loadingFill');
+  const pctEl=document.getElementById('loadingPct');
+  const msgs=['INITIALIZING MODELS...','LOADING DUNGEONS...','SPAWNING DEMONS...','CALIBRATING FEATURES...','READY TO BATTLE!'];
+  const timer=setInterval(()=>{
+    pct+=Math.random()*15+5;if(pct>100)pct=100;
+    fill.style.width=pct+'%';pctEl.textContent=Math.round(pct)+'%';
+    document.querySelector('.loading-text').textContent=msgs[Math.min(Math.floor(pct/25),4)];
+    if(pct>=100){clearInterval(timer);setTimeout(()=>document.getElementById('preloader').classList.add('hidden'),500)}
+  },200);
+})();
+
+/* ═══════ BACKGROUND CANVAS ═══════ */
+(function(){
+  const c=document.getElementById('bgCanvas'),x=c.getContext('2d');
   let w,h;function resize(){w=c.width=innerWidth;h=c.height=innerHeight}
   resize();window.addEventListener('resize',resize);
-  const nebulae=[];for(let i=0;i<5;i++) nebulae.push({
-    x:Math.random()*2000,y:Math.random()*2000,r:200+Math.random()*400,
-    color:['rgba(0,240,255,','rgba(255,0,229,','rgba(168,85,247,','rgba(77,124,255,'][i%4],
-    dx:(Math.random()-0.5)*0.3,dy:(Math.random()-0.5)*0.3
-  });
+  const stars=[];for(let i=0;i<150;i++)stars.push({x:Math.random()*3000,y:Math.random()*3000,
+    r:Math.random()*1.5+0.3,speed:Math.random()*0.3+0.05,
+    color:['#00f0ff','#ff00e5','#ffd700','#a855f7'][Math.floor(Math.random()*4)]});
+  const nebulae=[];for(let i=0;i<4;i++)nebulae.push({x:Math.random()*3000,y:Math.random()*3000,
+    r:150+Math.random()*300,
+    color:['rgba(0,240,255,','rgba(255,0,229,','rgba(168,85,247,','rgba(255,215,0,'][i%4]});
+  let mx=0,my=0;document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY});
   function draw(){
-    x.clearRect(0,0,w,h);
-    const scrollY=window.scrollY*0.1;
+    x.fillStyle='rgba(5,0,26,0.15)';x.fillRect(0,0,w,h);
+    const scroll=window.scrollY*0.05;
     nebulae.forEach(n=>{
-      n.x+=n.dx;n.y+=n.dy;
-      if(n.x<-n.r)n.x=w+n.r;if(n.x>w+n.r)n.x=-n.r;
-      if(n.y<-n.r)n.y=h+n.r;if(n.y>n.h+n.r)n.y=-n.r;
-      const g=x.createRadialGradient(n.x,n.y-scrollY,0,n.x,n.y-scrollY,n.r);
-      g.addColorStop(0,n.color+'0.06)');g.addColorStop(1,n.color+'0)');
+      const g=x.createRadialGradient(n.x,n.y-scroll,0,n.x,n.y-scroll,n.r);
+      g.addColorStop(0,n.color+'0.04)');g.addColorStop(1,n.color+'0)');
       x.fillStyle=g;x.fillRect(0,0,w,h);
     });
-    requestAnimationFrame(draw);
-  }
-  draw();
-})();
-
-/* ═══════ GRID CANVAS ═══════ */
-(function(){
-  const c=document.getElementById('gridCanvas'),x=c.getContext('2d');
-  let w,h;function resize(){w=c.width=innerWidth;h=c.height=innerHeight}
-  resize();window.addEventListener('resize',resize);
-  let t=0;
-  function draw(){
-    x.clearRect(0,0,w,h);t+=0.005;
-    const scrollY=window.scrollY*0.15;
-    x.strokeStyle='rgba(0,240,255,0.03)';x.lineWidth=1;
-    const spacing=60;
-    for(let i=0;i<w;i+=spacing){
-      const offset=Math.sin(t+i*0.01)*5;
-      x.beginPath();x.moveTo(i,0);x.lineTo(i+offset,h);x.stroke();
-    }
-    for(let j=-scrollY%spacing;j<h;j+=spacing){
-      const offset=Math.cos(t+j*0.01)*5;
-      x.beginPath();x.moveTo(0,j+offset);x.lineTo(w,j);x.stroke();
-    }
-    requestAnimationFrame(draw);
-  }
-  draw();
-})();
-
-/* ═══════ PARTICLE CANVAS ═══════ */
-(function(){
-  const c=document.getElementById('particleCanvas'),x=c.getContext('2d');
-  let w,h;function resize(){w=c.width=innerWidth;h=c.height=innerHeight}
-  resize();window.addEventListener('resize',resize);
-  const particles=[];
-  for(let i=0;i<80;i++) particles.push({
-    x:Math.random()*2000,y:Math.random()*2000,
-    vx:(Math.random()-0.5)*0.5,vy:(Math.random()-0.5)*0.5,
-    r:Math.random()*2+0.5,
-    color:['#00f0ff','#ff00e5','#ffd700','#a855f7','#4d7cff'][Math.floor(Math.random()*5)],
-    alpha:Math.random()*0.5+0.2
-  });
-  let mouseX=0,mouseY=0;
-  document.addEventListener('mousemove',e=>{mouseX=e.clientX;mouseY=e.clientY});
-  function draw(){
-    x.clearRect(0,0,w,h);
-    particles.forEach((p,i)=>{
-      p.x+=p.vx;p.y+=p.vy;
-      if(p.x<0)p.x=w;if(p.x>w)p.x=0;
-      if(p.y<0)p.y=h;if(p.y>h)p.y=0;
-      const dx=mouseX-p.x,dy=mouseY-p.y,dist=Math.sqrt(dx*dx+dy*dy);
-      if(dist<150){
-        p.x-=dx*0.01;p.y-=dy*0.01;
-      }
-      x.beginPath();x.arc(p.x,p.y,p.r,0,Math.PI*2);
-      x.fillStyle=p.color;x.globalAlpha=p.alpha;x.fill();
-      for(let j=i+1;j<particles.length;j++){
-        const q=particles[j];
-        const d=Math.sqrt((p.x-q.x)**2+(p.y-q.y)**2);
-        if(d<120){
-          x.beginPath();x.moveTo(p.x,p.y);x.lineTo(q.x,q.y);
-          x.strokeStyle=p.color;x.globalAlpha=0.06*(1-d/120);x.lineWidth=0.5;x.stroke();
-        }
-      }
+    stars.forEach(s=>{
+      s.y+=s.speed;if(s.y>h+10){s.y=-10;s.x=Math.random()*w}
+      const parallax=(s.y+scroll*0.2)%h;
+      x.beginPath();x.arc(s.x,parallax,s.r,0,Math.PI*2);
+      x.fillStyle=s.color;x.globalAlpha=0.6+Math.sin(Date.now()*0.003+s.x)*0.3;x.fill();
     });
     x.globalAlpha=1;
     requestAnimationFrame(draw);
@@ -830,120 +666,381 @@ window.addEventListener('load',()=>{
   draw();
 })();
 
-/* ═══════ 3D CARD TILT ═══════ */
-function tiltCard(e,el){
-  const r=el.getBoundingClientRect();
-  const x=(e.clientX-r.left)/r.width-0.5;
-  const y=(e.clientY-r.top)/r.height-0.5;
-  el.style.transform=`perspective(800px) rotateY(${x*12}deg) rotateX(${-y*12}deg) translateY(-8px) scale(1.02)`;
-  el.style.setProperty('--mx',(e.clientX-r.left)/r.width*100+'%');
-  el.style.setProperty('--my',(e.clientY-r.top)/r.height*100+'%');
+/* ═══════ XP SYSTEM ═══════ */
+function addXP(amount){
+  G.xp+=amount;
+  while(G.xp>=G.xpMax){G.xp-=G.xpMax;levelUp()}
+  updateHUD();
 }
-function resetCard(el){el.style.transform=''}
+function levelUp(){
+  G.level++;G.xpMax=Math.floor(G.xpMax*1.5);
+  G.heroMaxHP+=20;G.heroHP=G.heroMaxHP;G.heroATK+=3;
+  document.getElementById('levelupLevel').textContent=G.level;
+  document.getElementById('levelupBonus').textContent=`+20 Max HP | +3 ATK | HP Fully Restored`;
+  document.getElementById('levelupOverlay').classList.add('show');
+  playLevelUp();
+  spawnFloating(window.innerWidth/2,window.innerHeight/2,'LEVEL UP!','xp');
+}
+function closeLevelUp(){document.getElementById('levelupOverlay').classList.remove('show')}
+function updateHUD(){
+  document.getElementById('hudLevel').textContent=G.level;
+  document.getElementById('hudXP').textContent=G.xp;
+  document.getElementById('hudXPMax').textContent=G.xpMax;
+  document.getElementById('hudPoints').textContent=G.points;
+  document.getElementById('hudStreak').textContent=G.streak;
+  document.getElementById('xpBarFill').style.width=(G.xp/G.xpMax*100)+'%';
+}
 
-/* ═══════ SCROLL REVEAL ═══════ */
-const observer=new IntersectionObserver((entries)=>{
-  entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible')});
-},{threshold:0.1});
-document.querySelectorAll('.reveal').forEach(el=>observer.observe(el));
+/* ═══════ FLOATING TEXT ═══════ */
+function spawnFloating(x,y,text,type='damage'){
+  const el=document.createElement('div');
+  el.className='floating-text '+type;el.textContent=text;
+  el.style.left=x+'px';el.style.top=y+'px';
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),1500);
+}
 
-/* ═══════ COUNTER ANIMATION ═══════ */
-const counterObserver=new IntersectionObserver((entries)=>{
-  entries.forEach(e=>{
-    if(!e.isIntersecting)return;
-    const el=e.target;const target=+el.dataset.count;if(!target)return;
-    let current=0;const step=target/60;
-    const timer=setInterval(()=>{
-      current+=step;
-      if(current>=target){current=target;clearInterval(timer)}
-      el.textContent=Math.round(current)+'%';
-    },25);
-    counterObserver.unobserve(el);
+/* ═══════ QUESTS ═══════ */
+const QUESTS=[
+  {id:'first_battle',icon:'⚔️',name:'First Blood',desc:'Win your first battle against the Default Demon',difficulty:'easy',xpReward:50,ptsReward:25,
+    check:()=>G.battlesWon>=1},
+  {id:'win_3',icon:'🗡️',name:'Monster Hunter',desc:'Win 3 battles against the Default Demon',difficulty:'easy',xpReward:100,ptsReward:50,
+    check:()=>G.battlesWon>=3},
+  {id:'win_10',icon:'🐉',name:'Dragon Slayer',desc:'Win 10 battles — prove your dominance',difficulty:'medium',xpReward:300,ptsReward:150,
+    check:()=>G.battlesWon>=10},
+  {id:'combo_3',icon:'🔥',name:'Combo Master',desc:'Land 3 critical hits in a single battle',difficulty:'medium',xpReward:150,ptsReward:75,
+    check:()=>G.combo>=3},
+  {id:'streak_5',icon:'⚡',name:'Unstoppable',desc:'Achieve a 5-win streak',difficulty:'hard',xpReward:250,ptsReward:125,
+    check:()=>G.maxStreak>=5},
+  {id:'streak_10',icon:'💥',name:'Legendary Streak',desc:'Achieve a 10-win streak',difficulty:'hard',xpReward:500,ptsReward:250,
+    check:()=>G.maxStreak>=10},
+  {id:'level_5',icon:'👑',name:'Rising Champion',desc:'Reach Level 5',difficulty:'medium',xpReward:200,ptsReward:100,
+    check:()=>G.level>=5},
+  {id:'level_10',icon:'🏆',name:'Grand Master',desc:'Reach Level 10',difficulty:'hard',xpReward:1000,ptsReward:500,
+    check:()=>G.level>=10},
+  {id:'spin_5',icon:'🎰',name:'Gambler',desc:'Use the slot machine 5 times',difficulty:'easy',xpReward:75,ptsReward:0,
+    check:()=>G.spins>=5},
+  {id:'jackpot',icon:'💎',name:'JACKPOT!',desc:'Get 3 matching symbols on the slots',difficulty:'hard',xpReward:500,ptsReward:200,
+    check:()=>G.achievements.has('jackpot')},
+  {id:'damage_500',icon:'💀',name:'Berserker',desc:'Deal 500+ total damage in a single battle',difficulty:'medium',xpReward:200,ptsReward:100,
+    check:()=>G.totalDamage>=500},
+  {id:'all_types',icon:'🌍',name:'Dungeon Crawler',desc:'Battle with all 6 loan types',difficulty:'hard',xpReward:400,ptsReward:200,
+    check:()=>(G.quests.usedTypes||new Set()).size>=6},
+];
+
+function initQuests(){
+  const board=document.getElementById('questBoard');
+  board.innerHTML='';
+  QUESTS.forEach(q=>{
+    const done=G.achievements.has(q.id);
+    const card=document.createElement('div');
+    card.className='quest-card';
+    card.innerHTML=`
+      <div class="q-header">
+        <span class="q-icon">${q.icon}</span>
+        <span class="q-difficulty q-${q.difficulty}">${q.difficulty.toUpperCase()}</span>
+      </div>
+      <h3>${q.name}</h3>
+      <p>${q.desc}</p>
+      <div class="q-reward">
+        <span>⭐ ${q.xpReward} XP</span>
+        ${q.ptsReward?`<span>💎 ${q.ptsReward} PTS</span>`:''}
+      </div>
+      ${done?`<div class="q-complete">✅</div>`:''}
+    `;
+    board.appendChild(card);
   });
-},{threshold:0.5});
-document.querySelectorAll('[data-count]').forEach(el=>counterObserver.observe(el));
+}
 
-/* ═══════ PREDICTION DEMO ═══════ */
-function predictDefault(e){
-  e.preventDefault();
-  const loan=+document.getElementById('loanAmount').value;
-  const rate=+document.getElementById('interestRate').value;
-  const income=+document.getElementById('annualIncome').value;
-  const dti=+document.getElementById('debtToIncome').value;
-  const score=+document.getElementById('creditScore').value;
-  const emp=+document.getElementById('employmentLength').value;
-  const type=document.getElementById('loanType').value;
-  const seg=document.getElementById('segment').value;
+function checkQuests(){
+  QUESTS.forEach(q=>{
+    if(!G.achievements.has(q.id)&&q.check()){
+      G.achievements.add(q.id);
+      addXP(q.xpReward);G.points+=q.ptsReward;
+      showAchievement(q.name,q.desc,q.xpReward);
+      initQuests();initAchievements();
+    }
+  });
+}
 
-  let risk=0;const rf=[],pf=[];
+/* ═══════ ACHIEVEMENTS ═══════ */
+const ALL_ACHIEVEMENTS=[
+  {id:'first_battle',icon:'⚔️',name:'First Blood',desc:'Win your first battle',xp:50},
+  {id:'win_3',icon:'🗡️',name:'Monster Hunter',desc:'Win 3 battles',xp:100},
+  {id:'win_10',icon:'🐉',name:'Dragon Slayer',desc:'Win 10 battles',xp:300},
+  {id:'combo_3',icon:'🔥',name:'Combo Master',desc:'3 critical hits in one battle',xp:150},
+  {id:'streak_5',icon:'⚡',name:'Unstoppable',desc:'5-win streak',xp:250},
+  {id:'streak_10',icon:'💥',name:'Legendary',desc:'10-win streak',xp:500},
+  {id:'level_5',icon:'👑',name:'Rising Champion',desc:'Reach Level 5',xp:200},
+  {id:'level_10',icon:'🏆',name:'Grand Master',desc:'Reach Level 10',xp:1000},
+  {id:'spin_5',icon:'🎰',name:'Gambler',desc:'Spin 5 times',xp:75},
+  {id:'jackpot',icon:'💎',name:'JACKPOT!',desc:'3 matching symbols',xp:500},
+  {id:'damage_500',icon:'💀',name:'Berserker',desc:'500+ damage in one battle',xp:200},
+  {id:'all_types',icon:'🌍',name:'Dungeon Crawler',desc:'All 6 loan types',xp:400},
+];
+function initAchievements(){
+  const grid=document.getElementById('achGrid');grid.innerHTML='';
+  ALL_ACHIEVEMENTS.forEach(a=>{
+    const unlocked=G.achievements.has(a.id);
+    const card=document.createElement('div');
+    card.className='ach-card '+(unlocked?'unlocked':'locked');
+    card.innerHTML=`
+      <div class="ach-icon">${a.icon}</div>
+      <div class="ach-name">${a.name}</div>
+      <div class="ach-desc">${a.desc}</div>
+      <div class="ach-xp">+${a.xp} XP</div>
+    `;
+    grid.appendChild(card);
+  });
+}
 
+function showAchievement(title,desc,xp){
+  const popup=document.getElementById('achPopup');
+  document.getElementById('achTitle').textContent=title;
+  document.getElementById('achDesc').textContent=desc;
+  document.getElementById('achXP').textContent=`+${xp} XP`;
+  popup.classList.add('show');
+  playVictory();
+  setTimeout(()=>popup.classList.remove('show'),4000);
+}
+
+/* ═══════ BATTLE SYSTEM ═══════ */
+function calcRiskScore(){
+  const loan=+document.getElementById('bLoan').value;
+  const rate=+document.getElementById('bRate').value;
+  const income=+document.getElementById('bIncome').value;
+  const dti=+document.getElementById('bDTI').value;
+  const score=+document.getElementById('bCredit').value;
+  const emp=+document.getElementById('bEmp').value;
+  const type=document.getElementById('bType').value;
+  const seg=document.getElementById('bSeg').value;
+
+  let risk=0;
   risk+=dti*40;
-  if(dti>0.43)rf.push({n:'High DTI Ratio',d:(dti*100).toFixed(0)+'% (threshold: 43%)'});
-  else if(dti<0.2)pf.push({n:'Low DTI Ratio',d:(dti*100).toFixed(0)+'%'});
-
-  const creditImpact=(750-score)/8;
-  risk+=Math.max(0,creditImpact);
-  if(score<620)rf.push({n:'Low Credit Score',d:score+' (subprime)'});
-  else if(score>=750)pf.push({n:'Excellent Credit',d:score+''});
-  else if(score>=700)pf.push({n:'Good Credit',d:score+''});
-
-  const lti=loan/Math.max(income,1);
-  risk+=lti*15;
-  if(lti>0.5)rf.push({n:'High Loan-to-Income',d:(lti*100).toFixed(0)+'%'});
-  else if(lti<0.2)pf.push({n:'Low Loan-to-Income',d:(lti*100).toFixed(0)+'%'});
-
+  risk+=Math.max(0,(750-score)/8);
+  risk+=((loan/Math.max(income,1))*15);
   risk+=Math.max(0,(rate-8))*1.5;
-  if(rate>20)rf.push({n:'High Interest Rate',d:rate+'%'});
-
   risk+=Math.max(0,(3-emp))*4;
-  if(emp<1)rf.push({n:'Limited Employment',d:emp+' years'});
-  else if(emp>=8)pf.push({n:'Stable Employment',d:emp+' years'});
-
   risk+={mortgage:-3,auto:0,personal:2,business:4,student:1,credit_card:3}[type]||0;
   risk+={prime:-8,near_prime:-2,subprime:8,deep_subprime:15}[seg]||0;
-  if(seg==='prime')pf.push({n:'Prime Segment',d:'Low risk profile'});
-  if(seg==='deep_subprime')rf.push({n:'Deep Subprime',d:'Elevated risk'});
 
-  if(!pf.length)pf.push({n:'None identified',d:'Review all factors'});
-  if(!rf.length)rf.push({n:'None identified',d:'Favorable profile'});
+  if(!G.quests.usedTypes)G.quests.usedTypes=new Set();
+  G.quests.usedTypes.add(type);
 
-  risk=Math.min(98,Math.max(2,risk));const prob=risk/100;
-
-  const panel=document.getElementById('resultPanel');
-  panel.classList.add('show');
-  const probEl=document.getElementById('resultProb');
-  probEl.textContent=prob.toFixed(1)+'%';
-  probEl.style.color=prob<25?'#00ff88':prob<50?'#ffd700':'#ff3366';
-
-  const cat=document.getElementById('resultCategory');
-  const cats=[
-    [10,'Very Low Risk','#00ff88','rgba(0,255,136,0.12)'],
-    [25,'Low Risk','#00ff88','rgba(0,255,136,0.12)'],
-    [50,'Medium Risk','#ffd700','rgba(255,215,0,0.12)'],
-    [75,'High Risk','#ff3366','rgba(255,51,102,0.12)'],
-    [101,'Very High Risk','#ff3366','rgba(255,51,102,0.2)']
-  ];
-  const c=cats.find(x=>prob<x[0]);
-  cat.textContent=c[1];cat.style.background=c[3];cat.style.color=c[2];
-
-  const fill=document.getElementById('riskFill');
-  fill.style.width=risk+'%';
-  fill.style.background=prob<25?'#00ff88':prob<50?'#ffd700':'#ff3366';
-
-  document.getElementById('riskFactors').innerHTML=rf.map(f=>`<div class="factor-item"><strong style="color:#ff3366">${f.n}</strong> — ${f.d}</div>`).join('');
-  document.getElementById('protectiveFactors').innerHTML=pf.map(f=>`<div class="factor-item"><strong style="color:#00ff88">${f.n}</strong> — ${f.d}</div>`).join('');
-
-  const act=document.getElementById('actionBanner');
-  const acts=[
-    [10,'APPROVE — Standard terms','rgba(0,255,136,0.12)',  '#00ff88'],
-    [25,'APPROVE — Enhanced monitoring','rgba(0,255,136,0.12)','#00ff88'],
-    [50,'REVIEW — Additional docs required','rgba(255,215,0,0.12)','#ffd700'],
-    [75,'CONDITIONAL — Higher rate/collateral','rgba(255,51,102,0.1)','#ff3366'],
-    [101,'DECLINE — High default risk','rgba(255,51,102,0.15)','#ff3366']
-  ];
-  const a=acts.find(x=>prob<x[0]);
-  act.textContent=a[1];act.style.background=a[2];act.style.color=a[3];
+  return Math.min(98,Math.max(2,risk));
 }
+
+function executeAttack(){
+  const btn=document.getElementById('attackBtn');
+  btn.disabled=true;btn.textContent='⏳ ATTACKING...';
+
+  const risk=calcRiskScore();
+  G.turn++;
+
+  // Player attack
+  const accuracy=G.heroATK+Math.random()*10;
+  const isCrit=Math.random()<0.2+G.combo*0.05;
+  let damage=Math.floor(accuracy*(isCrit?2.5:1)*(1-risk/200));
+  damage=Math.max(5,damage);
+
+  G.enemyHP=Math.max(0,G.enemyHP-damage);
+  G.totalDamage+=damage;
+  if(isCrit){G.combo++;playCrit()}else{G.combo=0;playHit()}
+
+  const ex=document.getElementById('battleForm').getBoundingClientRect();
+  spawnFloating(ex.left+ex.width/2,ex.top,damage+(isCrit?' CRITICAL!':''),isCrit?'critical':'damage');
+
+  addBattleLog(G.turn,`You deploy features → ${damage} DMG${isCrit?' (CRITICAL x'+G.combo+')':''}`,isCrit?'critical':'damage');
+  updateEnemyHP();
+
+  // Check enemy defeated
+  if(G.enemyHP<=0){
+    setTimeout(()=>battleVictory(damage),500);return;
+  }
+
+  // Enemy counter-attack
+  setTimeout(()=>{
+    const enemyDmg=Math.floor(G.enemyATK+Math.random()*8);
+    G.heroHP=Math.max(0,G.heroHP-enemyDmg);
+    playHit();
+    spawnFloating(ex.left+ex.width/2,ex.top+60,'-'+enemyDmg,'damage');
+    addBattleLog(G.turn,`Default Demon strikes back → -${enemyDmg} HP`,'damage');
+    updateHeroHP();
+
+    if(G.heroHP<=0){setTimeout(()=>battleDefeat(),500);return}
+    btn.disabled=false;btn.textContent='⚔️ EXECUTE PREDICTION ATTACK';
+  },600);
+}
+
+function battleVictory(lastDmg){
+  G.battlesWon++;G.streak++;G.maxStreak=Math.max(G.maxStreak,G.streak);
+  const xpGain=30+G.streak*10+Math.floor(Math.random()*20);
+  const ptsGain=15+G.streak*5;
+  addXP(xpGain);G.points+=ptsGain;
+
+  playVictory();
+  addBattleLog(0,`🎉 VICTORY! +${xpGain} XP +${ptsGain} PTS | Streak: ${G.streak}`,'heal');
+
+  const res=document.getElementById('battleResult');
+  res.className='battle-result show';
+  res.innerHTML=`<div class="result-inner victory">
+    <div class="result-title">⚔️ VICTORY!</div>
+    <div class="result-stats">
+      <div class="result-stat"><div class="rs-val" style="color:var(--green)">${lastDmg}</div><div class="rs-lbl">Final Blow</div></div>
+      <div class="result-stat"><div class="rs-val" style="color:var(--gold)">${G.totalDamage}</div><div class="rs-lbl">Total DMG</div></div>
+      <div class="result-stat"><div class="rs-val" style="color:var(--magenta)">${G.streak}</div><div class="rs-lbl">Streak</div></div>
+    </div>
+    <div class="xp-gain">+${xpGain} XP | +${ptsGain} PTS</div>
+  </div>`;
+
+  resetBattle();
+  checkQuests();updateHUD();
+}
+
+function battleDefeat(){
+  G.battlesLost++;G.streak=0;
+  playDefeat();
+  addBattleLog(0,'💀 DEFEATED! The Default Demon has won. Try again!','damage');
+
+  const res=document.getElementById('battleResult');
+  res.className='battle-result show';
+  res.innerHTML=`<div class="result-inner defeat">
+    <div class="result-title">💀 DEFEAT</div>
+    <div class="result-stats">
+      <div class="result-stat"><div class="rs-val" style="color:var(--red)">${G.totalDamage}</div><div class="rs-lbl">Total DMG</div></div>
+      <div class="result-stat"><div class="rs-val" style="color:var(--gold)">0</div><div class="rs-lbl">XP Gained</div></div>
+    </div>
+    <div class="xp-gain" style="color:var(--red)">Streak reset. Train your features harder!</div>
+  </div>`;
+
+  resetBattle();updateHUD();
+}
+
+function resetBattle(){
+  G.enemyHP=G.enemyMaxHP+G.turn*10;G.enemyMaxHP=G.enemyHP;
+  G.heroHP=G.heroMaxHP;G.totalDamage=0;G.combo=0;
+  updateHeroHP();updateEnemyHP();
+  document.getElementById('attackBtn').disabled=false;
+  document.getElementById('attackBtn').textContent='⚔️ EXECUTE PREDICTION ATTACK';
+}
+
+function updateHeroHP(){
+  const pct=Math.max(0,G.heroHP/G.heroMaxHP*100);
+  const fill=document.getElementById('heroHP');
+  fill.style.width=pct+'%';
+  fill.className='hp-fill '+(pct>50?'green':pct>25?'yellow':'red');
+  document.getElementById('heroHPText').textContent=`${Math.max(0,G.heroHP)}/${G.heroMaxHP}`;
+}
+function updateEnemyHP(){
+  const pct=Math.max(0,G.enemyHP/G.enemyMaxHP*100);
+  const fill=document.getElementById('enemyHP');
+  fill.style.width=pct+'%';
+  fill.className='hp-fill '+(pct>50?'red':pct>25?'red':'red');
+  document.getElementById('enemyHPText').textContent=`${Math.max(0,G.enemyHP)}/${G.enemyMaxHP}`;
+}
+
+function addBattleLog(turn,text,type=''){
+  const log=document.getElementById('battleLog');
+  const entry=document.createElement('div');
+  entry.className='log-entry '+type;
+  entry.innerHTML=`<span class="log-turn">T${turn}</span><span>${text}</span>`;
+  log.appendChild(entry);log.scrollTop=log.scrollHeight;
+}
+
+/* ═══════ SLOT MACHINE ═══════ */
+let spinning=false;
+function spinSlots(){
+  if(spinning||G.points<50)return;
+  G.points-=50;G.spins++;spinning=true;
+  updateHUD();
+  document.getElementById('spinBtn').disabled=true;
+  document.getElementById('slotResult').textContent='';
+  document.getElementById('slotResult').style.color='';
+
+  const results=[];
+  [1,2,3].forEach((n,i)=>{
+    const reel=document.getElementById('reel'+n);
+    reel.classList.add('spinning');
+    let count=0;
+    const iv=setInterval(()=>{
+      reel.querySelector('.symbol').textContent=SYMBOLS[Math.floor(Math.random()*SYMBOLS.length)];
+      playSpin();count++;
+      if(count>15+i*8){
+        clearInterval(iv);reel.classList.remove('spinning');
+        const finalSym=SYMBOLS[Math.floor(Math.random()*SYMBOLS.length)];
+        reel.querySelector('.symbol').textContent=finalSym;
+        results.push(finalSym);
+        if(results.length===3)evaluateSlots(results);
+      }
+    },80);
+  });
+}
+
+function evaluateSlots(results){
+  spinning=false;
+  document.getElementById('spinBtn').disabled=false;
+  const resEl=document.getElementById('slotResult');
+
+  if(results[0]===results[1]&&results[1]===results[2]){
+    // JACKPOT
+    const reward=SYMBOL_VALS[results[0]]||100;
+    G.points+=reward;G.achievements.add('jackpot');
+    resEl.textContent=`🎰 JACKPOT! +${reward} PTS`;
+    resEl.style.color='var(--gold)';
+    playJackpot();
+    spawnFloating(window.innerWidth/2,window.innerHeight/2,'JACKPOT!','critical');
+    checkQuests();
+  }else if(results[0]===results[1]||results[1]===results[2]||results[0]===results[2]){
+    const match=results[0]===results[1]?results[0]:results[2];
+    const reward=Math.floor((SYMBOL_VALS[match]||50)/3);
+    G.points+=reward;
+    resEl.textContent=`Almost! +${reward} PTS`;
+    resEl.style.color='var(--cyan)';
+    playHeal();
+  }else{
+    resEl.textContent='No match. Try again!';
+    resEl.style.color='var(--red)';
+    playDefeat();
+  }
+  updateHUD();
+}
+
+/* ═══════ LEADERBOARD ═══════ */
+function initLeaderboard(){
+  const lb=document.getElementById('leaderboard');
+  const entries=[
+    {rank:1,name:'AlphaPred',level:15,score:12500,avatar:'🧙',you:false},
+    {rank:2,name:'NeuralKnight',level:12,score:9800,avatar:'⚔️',you:false},
+    {rank:3,name:'GradientGuard',level:11,score:8200,avatar:'🛡️',you:false},
+    {rank:4,name:'XGBChampion',level:10,score:7500,avatar:'🏆',you:false},
+    {rank:5,name:'FeatureForge',level:9,score:6100,avatar:'🔧',you:false},
+    {rank:6,name:'DataDruid',level:8,score:5400,avatar:'🌿',you:false},
+    {rank:7,name:'EnsembleEagle',level:7,score:4200,avatar:'🦅',you:false},
+    {rank:8,name:'You',level:G.level,score:G.points+G.xp+G.battlesWon*100,avatar:'🧙',you:true},
+    {rank:9,name:'StackSamurai',level:6,score:3100,avatar:'⚔️',you:false},
+    {rank:10,name:'LightGBM_Lord',level:5,score:2400,avatar:'⚡',you:false},
+  ];
+  entries.sort((a,b)=>b.score-a.score);
+  entries.forEach((e,i)=>e.rank=i+1);
+  const youEntry=entries.find(e=>e.you);
+  if(youEntry){youEntry.level=G.level;youEntry.score=G.points+G.xp+G.battlesWon*100}
+
+  lb.innerHTML=entries.map(e=>`
+    <div class="lb-entry ${e.you?'you':''}">
+      <div class="lb-rank ${e.rank===1?'gold':e.rank===2?'silver':e.rank===3?'bronze':''}">#${e.rank}</div>
+      <div class="lb-avatar">${e.avatar}</div>
+      <div class="lb-info">
+        <div class="lb-name">${e.name}</div>
+        <div class="lb-level">Level ${e.level}</div>
+      </div>
+      <div class="lb-score">${e.score.toLocaleString()}</div>
+    </div>
+  `).join('');
+}
+
+/* ═══════ INIT ═══════ */
+initQuests();initAchievements();initLeaderboard();updateHUD();
+setInterval(()=>{initLeaderboard();checkQuests()},5000);
 </script>
 </body>
 </html>
