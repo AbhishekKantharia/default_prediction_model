@@ -71,8 +71,9 @@ detector = DriftDetector()
 ref = pd.DataFrame(np.random.randn(500, 5), columns=['f0','f1','f2','f3','f4'])
 cur = pd.DataFrame(np.random.randn(500, 5) + 0.5, columns=['f0','f1','f2','f3','f4'])
 drift = detector.detect_data_drift(ref, cur)
-print('  Drifted features: %d/%d' % (drift['num_drifted_features'], drift['total_features']))
-print('  Status: %s' % drift['overall_drift_status'])
+print('  Drifted features: %d/%d' % (len(drift['drifted_features']), len(drift['numeric_features'])))
+print('  Overall drift detected: %s' % drift['overall_drift_detected'])
+print('  Drift fraction: %.1f%%' % (drift['drift_fraction'] * 100))
 
 pred_drift = detector.detect_prediction_drift(
     np.random.rand(500)*0.3+0.1, np.random.rand(500)*0.3+0.3)
