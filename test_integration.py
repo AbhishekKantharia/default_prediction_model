@@ -113,7 +113,7 @@ from src.api.banking_api import BankingAPIClient, AABankingIntegration
 client = BankingAPIClient(api_base_url='https://api.example.com')
 print('  BankingAPIClient: %s' % client.api_base_url)
 aa = AABankingIntegration(aa_provider='cookie')
-print('  AA Integration: %s' % aa.provider)
+print('  AA Integration: %s' % aa.aa_provider)
 
 print()
 print('==========================================')
