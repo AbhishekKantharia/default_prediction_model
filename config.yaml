@@ -1,0 +1,121 @@
+project:
+  name: default_prediction_model
+  version: "2.0.0"
+  description: "Robust predictive solution for loan default estimation 12 months in advance"
+
+data:
+  raw_path: "data/raw"
+  processed_path: "data/processed"
+  external_path: "data/external"
+  target_column: "default_status"
+  prediction_horizon_months: 12
+  test_size: 0.2
+  validation_size: 0.15
+  random_state: 42
+
+features:
+  structured:
+    numerical:
+      - loan_amount
+      - interest_rate
+      - annual_income
+      - debt_to_income
+      - credit_score
+      - employment_length
+      - months_since_last_delinquency
+      - open_credit_lines
+      - total_credit_utilization
+      - revolving_balance
+      - installment_amount
+      - annual_payment
+      - total_revolving_bal
+      - total_acc
+      - num_derogatory_records
+      - num_collections_12m
+      - total_current_balance
+      - total_revolving_credit_limit
+      - months_since_first_credit_line
+      - delinquency_2yrs
+    categorical:
+      - loan_type
+      - home_ownership
+      - loan_purpose
+      - employment_status
+      - verification_status
+      - addr_state
+      - borrower_segment
+      - risk_grade
+    text:
+      - loan_description
+      - borrower_notes
+      - loan_title
+    temporal:
+      - issue_date
+      - last_payment_date
+      - next_payment_date
+      - earliest_credit_line
+
+loan_types:
+  - personal
+  - mortgage
+  - auto
+  - business
+  - student
+  - credit_card
+
+borrower_segments:
+  - prime
+  - subprime
+  - near_prime
+  - deep_subprime
+
+models:
+  algorithms:
+    - logistic_regression
+    - random_forest
+    - xgboost
+    - lightgbm
+    - catboost
+    - neural_network
+  ensemble:
+    method: stacking
+    meta_learner: logistic_regression
+  hyperparameter_tuning:
+    enabled: true
+    n_trials: 100
+    timeout: 3600
+    study_name: "default_prediction_optimization"
+
+evaluation:
+  metrics:
+    - accuracy
+    - precision
+    - recall
+    - f1_score
+    - auc_roc
+    - auc_pr
+    - log_loss
+    - brier_score
+  threshold_optimization: true
+  calibration: true
+  cross_validation:
+    n_splits: 5
+    strategy: stratified
+
+interpretation:
+  shap_enabled: true
+  feature_importance: true
+  partial_dependence: true
+  lime_enabled: true
+  consistent_framework: true
+
+monitoring:
+  data_drift_detection: true
+  model_performance_tracking: true
+  alert_threshold: 0.05
+
+api:
+  host: "0.0.0.0"
+  port: 8000
+  workers: 4
+  model_path: "models/saved"
