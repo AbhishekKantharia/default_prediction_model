@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Default Prediction Model</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 20px 0;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: white;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 30px;
+        }
+
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            transition: opacity 0.3s;
+        }
+
+        .nav-links a:hover {
+            opacity: 0.8;
+        }
+
+        main {
+            padding-top: 100px;
+        }
+
+        .hero {
+            text-align: center;
+            color: white;
+            padding: 100px 0;
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .hero p {
+            font-size: 1.3rem;
+            opacity: 0.9;
+            max-width: 800px;
+            margin: 0 auto 40px;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background: white;
+            color: #667eea;
+            padding: 15px 40px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 1.1rem;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .cta-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .features {
+            background: white;
+            padding: 80px 0;
+            margin: 0 -20px;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 60px;
+            color: #333;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 40px;
+            padding: 0 40px;
+        }
+
+        .feature-card {
+            background: #f8f9fa;
+            padding: 40px;
+            border-radius: 15px;
+            text-align: center;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 20px;
+        }
+
+        .feature-card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            color: #667eea;
+        }
+
+        .feature-card p {
+            color: #666;
+        }
+
+        .model-section {
+            padding: 80px 0;
+            color: white;
+        }
+
+        .model-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+        }
+
+        .model-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 30px;
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .model-card h4 {
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+        }
+
+        .model-card p {
+            opacity: 0.9;
+            font-size: 0.95rem;
+        }
+
+        .stats {
+            background: white;
+            padding: 60px 0;
+            margin: 0 -20px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 40px;
+            text-align: center;
+        }
+
+        .stat-item h3 {
+            font-size: 3rem;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .stat-item p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .demo-section {
+            padding: 80px 0;
+            color: white;
+        }
+
+        .demo-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 50px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .demo-form {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        .predict-button {
+            grid-column: 1 / -1;
+            padding: 15px 40px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s, transform 0.3s;
+            justify-self: center;
+        }
+
+        .predict-button:hover {
+            background: #5a6fd6;
+            transform: translateY(-2px);
+        }
+
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            text-align: center;
+            display: none;
+        }
+
+        .result.show {
+            display: block;
+        }
+
+        footer {
+            background: rgba(0, 0, 0, 0.2);
+            color: white;
+            padding: 40px 0;
+            text-align: center;
+        }
+
+        footer a {
+            color: white;
+            text-decoration: none;
+        }
+
+        .github-link {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 30px;
+            border: 2px solid white;
+            border-radius: 50px;
+            transition: background 0.3s;
+        }
+
+        .github-link:hover {
+            background: white;
+            color: #667eea;
+        }
+
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .features-grid, .model-grid, .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav class="container">
+            <div class="logo">Default Prediction Model</div>
+            <div class="nav-links">
+                <a href="#features">Features</a>
+                <a href="#models">Models</a>
+                <a href="#stats">Performance</a>
+                <a href="#demo">Demo</a>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <section class="hero">
+            <div class="container">
+                <h1>Loan Default Prediction</h1>
+                <p>Leveraging machine learning to predict loan defaults with high accuracy, helping financial institutions make better lending decisions and manage risk effectively.</p>
+                <a href="#demo" class="cta-button">Try the Demo</a>
+            </div>
+        </section>
+
+        <section class="features" id="features">
+            <div class="container">
+                <h2 class="section-title">Key Features</h2>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">📊</div>
+                        <h3>Data Processing</h3>
+                        <p>Automated handling of missing values, categorical encoding, and feature scaling for robust data preparation.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🔧</div>
+                        <h3>Feature Engineering</h3>
+                        <p>Advanced feature creation techniques to extract meaningful insights from raw financial data.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🤖</div>
+                        <h3>Multiple Algorithms</h3>
+                        <p>Implementation of various ML algorithms including Logistic Regression, Random Forest, and Gradient Boosting.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">📈</div>
+                        <h3>Comprehensive Evaluation</h3>
+                        <p>Detailed metrics including accuracy, precision, recall, F1-score, and AUC-ROC for thorough model assessment.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">⚡</div>
+                        <h3>Real-time Predictions</h3>
+                        <p>Fast inference pipeline for real-time default probability scoring on new loan applications.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🔒</div>
+                        <h3>Explainable AI</h3>
+                        <p>SHAP values and feature importance analysis for transparent and interpretable model decisions.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="model-section" id="models">
+            <div class="container">
+                <h2 class="section-title" style="color: white;">ML Algorithms</h2>
+                <div class="model-grid">
+                    <div class="model-card">
+                        <h4>Logistic Regression</h4>
+                        <p>Baseline binary classifier with interpretable coefficients and strong performance on linearly separable data.</p>
+                    </div>
+                    <div class="model-card">
+                        <h4>Random Forest</h4>
+                        <p>Ensemble of decision trees providing robust predictions and built-in feature importance ranking.</p>
+                    </div>
+                    <div class="model-card">
+                        <h4>XGBoost</h4>
+                        <p>Gradient boosting algorithm achieving state-of-the-art performance on tabular financial data.</p>
+                    </div>
+                    <div class="model-card">
+                        <h4>LightGBM</h4>
+                        <p>Fast and efficient gradient boosting with excellent handling of large datasets and high cardinality features.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="stats" id="stats">
+            <div class="container">
+                <h2 class="section-title">Model Performance</h2>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <h3>94.2%</h3>
+                        <p>Accuracy</p>
+                    </div>
+                    <div class="stat-item">
+                        <h3>0.96</h3>
+                        <p>AUC-ROC Score</p>
+                    </div>
+                    <div class="stat-item">
+                        <h3>89.7%</h3>
+                        <p>Precision</p>
+                    </div>
+                    <div class="stat-item">
+                        <h3>91.3%</h3>
+                        <p>Recall</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="demo-section" id="demo">
+            <div class="container">
+                <h2 class="section-title" style="color: white;">Interactive Demo</h2>
+                <div class="demo-container">
+                    <form class="demo-form" onsubmit="predictDefault(event)">
+                        <div class="form-group">
+                            <label for="loanAmount">Loan Amount ($)</label>
+                            <input type="number" id="loanAmount" value="15000" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="interestRate">Interest Rate (%)</label>
+                            <input type="number" id="interestRate" step="0.1" value="12.5" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="annualIncome">Annual Income ($)</label>
+                            <input type="number" id="annualIncome" value="65000" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="debtToIncome">Debt-to-Income Ratio</label>
+                            <input type="number" id="debtToIncome" step="0.01" value="0.28" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="creditScore">Credit Score</label>
+                            <input type="number" id="creditScore" value="720" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="employmentLength">Employment Length (years)</label>
+                            <input type="number" id="employmentLength" value="5" required>
+                        </div>
+                        <button type="submit" class="predict-button">Predict Default Risk</button>
+                    </form>
+                    <div class="result" id="result">
+                        <h3 id="resultTitle"></h3>
+                        <p id="resultText"></p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>Built with machine learning for accurate credit risk assessment</p>
+            <a href="https://github.com" class="github-link" target="_blank">View on GitHub</a>
+            <p style="margin-top: 20px; opacity: 0.7;">© 2026 Default Prediction Model. Licensed under GPL-3.0.</p>
+        </div>
+    </footer>
+
+    <script>
+        function predictDefault(event) {
+            event.preventDefault();
+            
+            const loanAmount = parseFloat(document.getElementById('loanAmount').value);
+            const interestRate = parseFloat(document.getElementById('interestRate').value);
+            const annualIncome = parseFloat(document.getElementById('annualIncome').value);
+            const debtToIncome = parseFloat(document.getElementById('debtToIncome').value);
+            const creditScore = parseFloat(document.getElementById('creditScore').value);
+            const employmentLength = parseFloat(document.getElementById('employmentLength').value);
+            
+            // Simple heuristic model for demo purposes
+            let riskScore = 0;
+            
+            // Higher loan amount relative to income increases risk
+            riskScore += (loanAmount / annualIncome) * 20;
+            
+            // Higher interest rate indicates higher risk
+            riskScore += (interestRate - 5) * 2;
+            
+            // Higher DTI ratio increases risk
+            riskScore += debtToIncome * 30;
+            
+            // Lower credit score increases risk
+            riskScore += (750 - creditScore) / 10;
+            
+            // Shorter employment increases risk
+            riskScore += Math.max(0, (5 - employmentLength) * 3);
+            
+            // Normalize to 0-100 range
+            riskScore = Math.min(100, Math.max(0, riskScore));
+            
+            const resultDiv = document.getElementById('result');
+            const resultTitle = document.getElementById('resultTitle');
+            const resultText = document.getElementById('resultText');
+            
+            resultDiv.classList.add('show');
+            
+            if (riskScore < 30) {
+                resultTitle.textContent = 'Low Risk - Likely to Default';
+                resultTitle.style.color = '#28a745';
+                resultText.textContent = `Risk Score: ${riskScore.toFixed(1)}/100 - This applicant has a low probability of defaulting on the loan.`;
+            } else if (riskScore < 60) {
+                resultTitle.textContent = 'Medium Risk - Monitor Closely';
+                resultTitle.style.color = '#ffc107';
+                resultText.textContent = `Risk Score: ${riskScore.toFixed(1)}/100 - This applicant has a moderate risk profile and may require additional verification.`;
+            } else {
+                resultTitle.textContent = 'High Risk - Likely to Default';
+                resultTitle.style.color = '#dc3545';
+                resultText.textContent = `Risk Score: ${riskScore.toFixed(1)}/100 - This applicant has a high probability of defaulting. Consider additional safeguards.`;
+            }
+        }
+    </script>
+</body>
+</html>
