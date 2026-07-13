@@ -39,7 +39,7 @@ print('  Confidence: %s' % preds['confidence'][:3].round(3))
 print()
 print('--- 3. MLOPS (MLflow) ---')
 from src.mlops.mlflow_tracker import MLflowTracker
-tracker = MLflowTracker(experiment_name='test', tracking_uri='./mlruns_test')
+tracker = MLflowTracker(experiment_name='test', tracking_uri='sqlite:///mlruns_test.db')
 tracker.log_params({'n_estimators': 500, 'max_depth': 8})
 tracker.log_metrics({'val_auc': 0.89, 'val_f1': 0.82})
 print('  MLflow tracking URI: %s' % tracker.tracking_uri)
