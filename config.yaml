@@ -119,3 +119,71 @@ api:
   port: 8000
   workers: 4
   model_path: "models/saved"
+
+# MLOps Configuration
+mlops:
+  mlflow:
+    tracking_uri: "mlruns"
+    experiment_name: "default_prediction"
+    model_registry: "credit_risk_models"
+  airflow:
+    dags_folder: "src/mlops"
+    schedule_interval: "daily"
+
+# Drift Detection
+monitoring:
+  drift_detection:
+    psi_threshold_warning: 0.1
+    psi_threshold_critical: 0.2
+    concept_drift_threshold: 0.05
+    check_interval: "daily"
+  auto_retrain:
+    enabled: true
+    min_samples: 1000
+    performance_threshold: 0.85
+
+# Risk-Based Pricing
+pricing:
+  base_rate:
+    repo_rate: 6.5
+    bank_spread: 2.0
+    risk_spread_base: 1.5
+  lgd:
+    unsecured: 0.45
+    secured: 0.25
+    mortgage: 0.15
+  operating_cost_ratio: 0.03
+
+# Banking API
+banking_api:
+  base_url: "https://api.banking.example.com"
+  api_version: "v1"
+  timeout: 30
+  retry_attempts: 3
+  account_aggregator:
+    provider: "cookie"
+    base_url: "https://aa.cookie.in"
+
+# Ensemble Configuration
+ensemble:
+  models:
+    - name: "xgboost"
+      weight: 0.45
+      params:
+        n_estimators: 500
+        max_depth: 8
+        learning_rate: 0.05
+    - name: "random_forest"
+      weight: 0.35
+      params:
+        n_estimators: 300
+        max_depth: 12
+    - name: "logistic_regression"
+      weight: 0.20
+      params:
+        C: 1.0
+        penalty: "l2"
+  stacking:
+    enabled: true
+    meta_learner: "logistic_regression"
+    cv_folds: 5

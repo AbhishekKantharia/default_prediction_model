@@ -1,3 +1,3 @@
-"""
-Pricing module for risk-based loan pricing recommendations.
-"""
+"""Pricing module - Risk-based pricing recommendations."""
+from .risk_pricing import RiskPricingEngine, EMICalculator
+__all__ = ['RiskPricingEngine', 'EMICalculator']
