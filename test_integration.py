@@ -91,7 +91,10 @@ for k in ['recommended_rate','optimal_rate','minimum_acceptable_rate','expected_
     if k in p:
         val = p[k]
         if isinstance(val, float):
-            print('  %s: %.2f' % (k, val))
+            if 'rate' in k:
+                print('  %s: %.2f%%' % (k, val * 100))
+            else:
+                print('  %s: %.2f' % (k, val))
         else:
             print('  %s: %s' % (k, val))
 
