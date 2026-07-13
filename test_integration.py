@@ -40,10 +40,12 @@ print()
 print('--- 3. MLOPS (MLflow) ---')
 from src.mlops.mlflow_tracker import MLflowTracker
 tracker = MLflowTracker(experiment_name='test', tracking_uri='sqlite:///mlruns_test.db')
+tracker.start_run(run_name='integration_test')
 tracker.log_params({'n_estimators': 500, 'max_depth': 8})
 tracker.log_metrics({'val_auc': 0.89, 'val_f1': 0.82})
 print('  MLflow tracking URI: %s' % tracker.tracking_uri)
 print('  Experiment: %s' % tracker.experiment_name)
+print('  Active run ID: %s' % tracker.current_run.info.run_id if tracker.current_run else 'None')
 
 print()
 print('--- 4. REAL-TIME SHAP EXPLANATIONS ---')

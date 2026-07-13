@@ -123,7 +123,7 @@ api:
 # MLOps Configuration
 mlops:
   mlflow:
-    tracking_uri: "mlruns"
+    tracking_uri: "sqlite:///mlflow.db"
     experiment_name: "default_prediction"
     model_registry: "credit_risk_models"
   airflow:
